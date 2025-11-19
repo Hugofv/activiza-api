@@ -3,67 +3,57 @@
  */
 
 import { IReq, IRes } from '../common/types';
-import HttpStatusCodes from '../common/HttpStatusCodes';
+import { BaseController } from '../common/BaseController';
 import { ClientsService } from '../services/clients';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 
-export class ClientsController {
-  constructor(private clientsService: ClientsService) {}
+export class ClientsController extends BaseController {
+  constructor(private clientsService: ClientsService) {
+    super();
+  }
 
   async index(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const { page, limit } = parsePaginationParams(req.query);
     const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
     const q = req.query.q as string | undefined;
 
     const result = await this.clientsService.findAll({ page, limit, accountId, q });
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(result),
-    });
+    this.ok(serializeBigInt(result));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     const client = await this.clientsService.findById(id);
 
     if (!client) {
-      res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        error: { message: 'Client not found', code: 'NOT_FOUND' },
-      });
+      this.notFound('Client not found');
       return;
     }
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(client),
-    });
+    this.ok(serializeBigInt(client));
   }
 
   async create(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const client = await this.clientsService.create(req.body);
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(client),
-    });
+    this.created(serializeBigInt(client));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     const client = await this.clientsService.update(id, req.body);
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(client),
-    });
+    this.ok(serializeBigInt(client));
   }
 
   async delete(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     await this.clientsService.delete(id);
-    res.status(HttpStatusCodes.NO_CONTENT).json({
-      success: true,
-    });
+    this.noContent();
   }
 }
 

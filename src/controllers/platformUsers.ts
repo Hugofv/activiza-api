@@ -3,67 +3,57 @@
  */
 
 import { IReq, IRes } from '../common/types';
-import HttpStatusCodes from '../common/HttpStatusCodes';
+import { BaseController } from '../common/BaseController';
 import { PlatformUsersService } from '../services/platformUsers';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 
-export class PlatformUsersController {
-  constructor(private platformUsersService: PlatformUsersService) {}
+export class PlatformUsersController extends BaseController {
+  constructor(private platformUsersService: PlatformUsersService) {
+    super();
+  }
 
   async index(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const { page, limit } = parsePaginationParams(req.query);
     const role = req.query.role as string | undefined;
     const q = req.query.q as string | undefined;
 
     const result = await this.platformUsersService.findAll({ page, limit, role, q });
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(result),
-    });
+    this.ok(serializeBigInt(result));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     const user = await this.platformUsersService.findById(id);
 
     if (!user) {
-      res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        error: { message: 'User not found', code: 'NOT_FOUND' },
-      });
+      this.notFound('User not found');
       return;
     }
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(user),
-    });
+    this.ok(serializeBigInt(user));
   }
 
   async create(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const user = await this.platformUsersService.create(req.body);
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(user),
-    });
+    this.created(serializeBigInt(user));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     const user = await this.platformUsersService.update(id, req.body);
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(user),
-    });
+    this.ok(serializeBigInt(user));
   }
 
   async delete(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     await this.platformUsersService.delete(id);
-    res.status(HttpStatusCodes.NO_CONTENT).json({
-      success: true,
-    });
+    this.noContent();
   }
 }
 

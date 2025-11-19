@@ -3,15 +3,18 @@
  */
 
 import { IReq, IRes } from '../common/types';
-import HttpStatusCodes from '../common/HttpStatusCodes';
+import { BaseController } from '../common/BaseController';
 import { OperationsService } from '../services/operations';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 
-export class OperationsController {
-  constructor(private operationsService: OperationsService) {}
+export class OperationsController extends BaseController {
+  constructor(private operationsService: OperationsService) {
+    super();
+  }
 
   async index(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const { page, limit } = parsePaginationParams(req.query);
     const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
     const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
@@ -26,64 +29,49 @@ export class OperationsController {
       status,
       type,
     });
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(result),
-    });
+    this.ok(serializeBigInt(result));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     const operation = await this.operationsService.findById(id);
 
     if (!operation) {
-      res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        error: { message: 'Operation not found', code: 'NOT_FOUND' },
-      });
+      this.notFound('Operation not found');
       return;
     }
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(operation),
-    });
+    this.ok(serializeBigInt(operation));
   }
 
   async create(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const operation = await this.operationsService.create(req.body);
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(operation),
-    });
+    this.created(serializeBigInt(operation));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     const operation = await this.operationsService.update(id, req.body);
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(operation),
-    });
+    this.ok(serializeBigInt(operation));
   }
 
   async delete(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     await this.operationsService.delete(id);
-    res.status(HttpStatusCodes.NO_CONTENT).json({
-      success: true,
-    });
+    this.noContent();
   }
 
   async registerPayment(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const operationId = BigInt(req.params.id);
     const clientId = req.user?.accountId || req.body.clientId;
     
     if (!clientId) {
-      res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        error: { message: 'Client ID is required', code: 'VALIDATION_ERROR' },
-      });
+      this.badRequest('Client ID is required', 'VALIDATION_ERROR');
       return;
     }
 
@@ -96,13 +84,11 @@ export class OperationsController {
       meta: req.body.meta,
     });
 
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(payment),
-    });
+    this.created(serializeBigInt(payment));
   }
 
   async triggerAlert(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const operationId = BigInt(req.params.id);
     const alert = await this.operationsService.triggerAlert(operationId, {
       type: req.body.type,
@@ -110,10 +96,7 @@ export class OperationsController {
       sendAt: req.body.sendAt ? new Date(req.body.sendAt) : undefined,
     });
 
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(alert),
-    });
+    this.created(serializeBigInt(alert));
   }
 }
 

@@ -3,15 +3,18 @@
  */
 
 import { IReq, IRes } from '../common/types';
-import HttpStatusCodes from '../common/HttpStatusCodes';
+import { BaseController } from '../common/BaseController';
 import { PaymentsService } from '../services/payments';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 
-export class PaymentsController {
-  constructor(private paymentsService: PaymentsService) {}
+export class PaymentsController extends BaseController {
+  constructor(private paymentsService: PaymentsService) {
+    super();
+  }
 
   async index(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const { page, limit } = parsePaginationParams(req.query);
     const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
     const operationId = req.query.operationId 
@@ -28,36 +31,26 @@ export class PaymentsController {
       from,
       to,
     });
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(result),
-    });
+    this.ok(serializeBigInt(result));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     const payment = await this.paymentsService.findById(id);
 
     if (!payment) {
-      res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        error: { message: 'Payment not found', code: 'NOT_FOUND' },
-      });
+      this.notFound('Payment not found');
       return;
     }
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(payment),
-    });
+    this.ok(serializeBigInt(payment));
   }
 
   async create(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const payment = await this.paymentsService.create(req.body as any);
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(payment),
-    });
+    this.created(serializeBigInt(payment));
   }
 }
 

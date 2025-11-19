@@ -3,15 +3,18 @@
  */
 
 import { IReq, IRes } from '../common/types';
-import HttpStatusCodes from '../common/HttpStatusCodes';
+import { BaseController } from '../common/BaseController';
 import { InstallmentsService } from '../services/installments';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 
-export class InstallmentsController {
-  constructor(private installmentsService: InstallmentsService) {}
+export class InstallmentsController extends BaseController {
+  constructor(private installmentsService: InstallmentsService) {
+    super();
+  }
 
   async index(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const { page, limit } = parsePaginationParams(req.query);
     const operationId = req.query.operationId 
       ? BigInt(req.query.operationId as string) 
@@ -32,40 +35,31 @@ export class InstallmentsController {
       dueDateFrom,
       dueDateTo,
     });
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(result),
-    });
+    this.ok(serializeBigInt(result));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     const installment = await this.installmentsService.findById(id);
 
     if (!installment) {
-      res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        error: { message: 'Installment not found', code: 'NOT_FOUND' },
-      });
+      this.notFound('Installment not found');
       return;
     }
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(installment),
-    });
+    this.ok(serializeBigInt(installment));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     const installment = await this.installmentsService.update(id, req.body);
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(installment),
-    });
+    this.ok(serializeBigInt(installment));
   }
 
   async markPaid(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = BigInt(req.params.id);
     const installment = await this.installmentsService.markPaid(id, {
       amount: req.body.amount,
@@ -74,10 +68,7 @@ export class InstallmentsController {
       operationId: req.body.operationId ? BigInt(req.body.operationId) : undefined,
     });
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(installment),
-    });
+    this.ok(serializeBigInt(installment));
   }
 }
 

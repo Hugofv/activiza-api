@@ -3,15 +3,18 @@
  */
 
 import { IReq, IRes } from '../common/types';
-import HttpStatusCodes from '../common/HttpStatusCodes';
+import { BaseController } from '../common/BaseController';
 import { AlertsService } from '../services/alerts';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 
-export class AlertsController {
-  constructor(private alertsService: AlertsService) {}
+export class AlertsController extends BaseController {
+  constructor(private alertsService: AlertsService) {
+    super();
+  }
 
   async index(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const { page, limit } = parsePaginationParams(req.query);
     const operationId = req.query.operationId 
       ? BigInt(req.query.operationId as string) 
@@ -21,56 +24,43 @@ export class AlertsController {
       : undefined;
 
     const result = await this.alertsService.findAll({ page, limit, operationId, enabled });
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(result),
-    });
+    this.ok(serializeBigInt(result));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     const alert = await this.alertsService.findById(id);
 
     if (!alert) {
-      res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        error: { message: 'Alert not found', code: 'NOT_FOUND' },
-      });
+      this.notFound('Alert not found');
       return;
     }
 
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(alert),
-    });
+    this.ok(serializeBigInt(alert));
   }
 
   async create(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const alert = await this.alertsService.create({
       ...req.body,
       operationId: BigInt(req.body.operationId),
     });
-    res.status(HttpStatusCodes.CREATED).json({
-      success: true,
-      data: serializeBigInt(alert),
-    });
+    this.created(serializeBigInt(alert));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     const alert = await this.alertsService.update(id, req.body);
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      data: serializeBigInt(alert),
-    });
+    this.ok(serializeBigInt(alert));
   }
 
   async delete(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
     const id = Number(req.params.id);
     await this.alertsService.delete(id);
-    res.status(HttpStatusCodes.NO_CONTENT).json({
-      success: true,
-    });
+    this.noContent();
   }
 }
 
