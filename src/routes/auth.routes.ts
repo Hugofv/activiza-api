@@ -43,7 +43,7 @@ const wrapHandler = (handler: (req: Request, res: Response) => Promise<void>) =>
 
 /**
  * @swagger
- * /api/auth/login:
+ * /auth/login:
  *   post:
  *     summary: Autenticação de usuário
  *     tags: [Auth]
@@ -120,11 +120,33 @@ router.post('/login', validate(loginSchema), wrapHandler((req, res) => authContr
  *             properties:
  *               refreshToken:
  *                 type: string
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *     responses:
  *       200:
  *         description: Token renovado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *                     expiresIn:
+ *                       type: integer
  *       401:
  *         description: Refresh token inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/refresh', validate(refreshTokenSchema), wrapHandler((req, res) => authController.refresh(req, res)));
 
@@ -146,9 +168,30 @@ router.post('/refresh', validate(refreshTokenSchema), wrapHandler((req, res) => 
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: user@example.com
  *     responses:
  *       200:
  *         description: Email enviado (sempre retorna sucesso por segurança)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: If an account exists, a password reset email has been sent
+ *       400:
+ *         description: Email inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/forgot-password', validate(forgotPasswordSchema), wrapHandler((req, res) => authController.forgotPassword(req, res)));
 
@@ -170,14 +213,35 @@ router.post('/forgot-password', validate(forgotPasswordSchema), wrapHandler((req
  *             properties:
  *               token:
  *                 type: string
+ *                 example: abc123def456...
  *               password:
  *                 type: string
  *                 format: password
+ *                 minLength: 8
+ *                 example: newPassword123
  *     responses:
  *       200:
  *         description: Senha resetada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Password reset successfully
  *       400:
  *         description: Token inválido ou expirado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/reset-password', validate(resetPasswordSchema), wrapHandler((req, res) => authController.resetPassword(req, res)));
 
@@ -195,9 +259,39 @@ router.post('/reset-password', validate(resetPasswordSchema), wrapHandler((req, 
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Dados do usuário
+ *         description: Dados do usuário autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     email:
+ *                       type: string
+ *                       example: admin@example.com
+ *                     name:
+ *                       type: string
+ *                       example: Admin User
+ *                     role:
+ *                       type: string
+ *                       example: admin
+ *                     isActive:
+ *                       type: boolean
+ *                       example: true
  *       401:
  *         description: Não autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/me', authMiddleware, wrapHandler((req, res) => authController.me(req, res)));
 
@@ -211,7 +305,27 @@ router.get('/me', authMiddleware, wrapHandler((req, res) => authController.me(re
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Logout realizado
+ *         description: Logout realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Logged out successfully
+ *       401:
+ *         description: Não autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/logout', authMiddleware, wrapHandler((req, res) => authController.logout(req, res)));
 

@@ -15,6 +15,7 @@ import { loadContainer } from './container';
 import routes from './routes';
 import { NodeEnvs } from './common/misc';
 import { errorMiddleware } from './middlewares/error.middleware';
+import authRouter from './routes/auth.routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -53,6 +54,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 
 // Add APIs, must be after middleware
 loadContainer(app);
+
+// Public routes (no authentication required)
+app.use('/', authRouter);
+
+// Protected routes (all /api/* require authentication)
 app.use('/api', routes);
 
 // Add error handler

@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import authRouter from './auth.routes';
 import accountsRouter from './accounts.routes';
 import clientsRouter from './clients.routes';
 import operationsRouter from './operations.routes';
@@ -10,11 +9,12 @@ import alertsRouter from './alerts.routes';
 import notificationsRouter from './notifications.routes';
 import settingsRouter from './settings.routes';
 import platformUsersRouter from './platformUsers.routes';
+import { authMiddleware } from '../middlewares/auth.middleware';
 
 const routes = Router();
 
-// Public routes
-routes.use('/auth', authRouter);
+// All /api/* routes require authentication
+routes.use(authMiddleware);
 
 // Protected routes (require authentication)
 routes.use('/accounts', accountsRouter);

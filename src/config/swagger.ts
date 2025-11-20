@@ -36,7 +36,7 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT token obtido no endpoint /api/auth/login',
+          description: 'JWT token obtido no endpoint /auth/login',
         },
       },
       schemas: {
