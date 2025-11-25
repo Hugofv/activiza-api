@@ -120,8 +120,9 @@ model Address {
 
 model Client {
   id        Int       @id @default(autoincrement())
-  accountId Int       @map("account_id")
-  name      String
+  document  String    @unique // CPF or CNPJ - required for onboarding
+  accountId Int?      @map("account_id") // Optional during onboarding
+  name      String? // Optional during onboarding
   phone     String?
   email     String?
   meta      Json?
@@ -131,7 +132,7 @@ model Client {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  account    Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account    Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   address    Address?
   creator    PlatformUser? @relation("ClientCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   updater    PlatformUser? @relation("ClientUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)

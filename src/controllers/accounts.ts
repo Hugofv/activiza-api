@@ -38,7 +38,7 @@ export class AccountsController extends BaseController {
 
   async create(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
-    const account = await this.accountsService.create(req.body as any);
+    const account = await this.accountsService.create(req.body as any, req.user?.id);
     this.created(serializeBigInt(account));
   }
 

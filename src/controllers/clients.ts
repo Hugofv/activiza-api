@@ -38,14 +38,22 @@ export class ClientsController extends BaseController {
 
   async create(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
-    const client = await this.clientsService.create(req.body as any);
+    
+    // Get accountId from body or from authenticated user (optional for onboarding)
+    const body = req.body as any;
+    const accountId = body.accountId || req.user?.accountId;
+
+    const client = await this.clientsService.create(
+      { ...body, accountId },
+      req.user?.id
+    );
     this.created(serializeBigInt(client));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
     const id = Number(req.params.id);
-    const client = await this.clientsService.update(id, req.body as any);
+    const client = await this.clientsService.update(id, req.body as any, req.user?.id);
     this.ok(serializeBigInt(client));
   }
 

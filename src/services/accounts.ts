@@ -4,8 +4,9 @@
 
 import { PrismaClient } from '@prisma/client';
 import { CreateAccountDto, UpdateAccountDto } from '../dtos/accounts.dto';
-import { Currency } from '../constants/enums';
+import { Currency, UserRole } from '../constants/enums';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import bcrypt from 'bcrypt';
 
 export class AccountsService {
   constructor(private prisma: PrismaClient) {}
@@ -68,10 +69,51 @@ export class AccountsService {
     });
   }
 
-  async create(dto: CreateAccountDto) {
+  async create(dto: CreateAccountDto, createdBy?: number) {
     // Validate currency
     if (dto.currency && !Object.values(Currency).includes(dto.currency as Currency)) {
       throw new Error(`Invalid currency: ${dto.currency}`);
+    }
+
+    let ownerId = dto.ownerId;
+
+    // If ownerId is not provided, automatically create PlatformUser (owner) from account data
+    if (!ownerId) {
+      // Check if owner with this email already exists
+      const existingOwner = await this.prisma.platformUser.findUnique({
+        where: { email: dto.email },
+        select: { id: true, deletedAt: true },
+      });
+
+      if (existingOwner) {
+        if (existingOwner.deletedAt) {
+          throw new Error('A deleted user with this email exists. Please contact support.');
+        }
+        // Use existing owner
+        ownerId = existingOwner.id;
+      } else {
+        // Password is required when creating new owner
+        if (!dto.password) {
+          throw new Error('Password is required to create account owner');
+        }
+
+        // Hash password
+        const passwordHash = await bcrypt.hash(dto.password, 10);
+
+        // Create PlatformUser (owner) automatically from account data
+        const newOwner = await this.prisma.platformUser.create({
+          data: {
+            name: dto.name,
+            email: dto.email,
+            phone: dto.phone,
+            passwordHash,
+            role: UserRole.OWNER,
+            isActive: true,
+          },
+        });
+
+        ownerId = newOwner.id;
+      }
     }
 
     return this.prisma.account.create({
@@ -84,7 +126,8 @@ export class AccountsService {
         currency: dto.currency || Currency.BRL,
         plan: dto.plan,
         meta: dto.meta as unknown as InputJsonValue,
-        ownerId: dto.ownerId,
+        ownerId,
+        createdBy,
       },
       include: {
         owner: true,

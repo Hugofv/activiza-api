@@ -9,11 +9,15 @@ import alertsRouter from './alerts.routes';
 import notificationsRouter from './notifications.routes';
 import settingsRouter from './settings.routes';
 import platformUsersRouter from './platformUsers.routes';
+import onboardingRouter from './onboarding.routes';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const routes = Router();
 
-// All /api/* routes require authentication
+// Public routes (no authentication required)
+routes.use('/onboarding', onboardingRouter);
+
+// All other /api/* routes require authentication
 routes.use(authMiddleware);
 
 // Protected routes (require authentication)

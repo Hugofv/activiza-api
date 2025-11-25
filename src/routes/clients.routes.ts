@@ -5,8 +5,15 @@
 import { Router } from 'express';
 import { makeInvoker } from 'awilix-express';
 import { ClientsController } from '../controllers/clients';
+import { VerificationController } from '../controllers/verification';
 import { validate } from '../middlewares/validation.middleware';
 import { createClientSchema, updateClientSchema } from '../dtos/clients.dto';
+import {
+  sendPhoneVerificationSchema,
+  verifyPhoneSchema,
+  sendEmailVerificationSchema,
+  verifyEmailSchema,
+} from '../dtos/verification.dto';
 
 const router = Router();
 const api = makeInvoker(ClientsController);
@@ -308,6 +315,191 @@ router.put('/:id', validate(updateClientSchema), api('update'));
  *               $ref: '#/components/schemas/Error'
  */
 router.delete('/:id', api('delete'));
+
+// Verification routes
+const verificationApi = makeInvoker(VerificationController);
+
+/**
+ * @swagger
+ * /api/clients/{id}/verify/phone/send:
+ *   post:
+ *     summary: Send verification code to phone (WhatsApp)
+ *     tags: [Clients, Verification]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 oneOf:
+ *                   - type: string
+ *                   - type: object
+ *                     properties:
+ *                       phoneNumber:
+ *                         type: string
+ *                       formattedPhoneNumber:
+ *                         type: string
+ *                       countryCode:
+ *                         type: string
+ *     responses:
+ *       200:
+ *         description: Verification code sent successfully
+ *       400:
+ *         description: Invalid request
+ */
+router.post('/:id/verify/phone/send', validate(sendPhoneVerificationSchema), verificationApi('sendPhoneVerification'));
+
+/**
+ * @swagger
+ * /api/clients/{id}/verify/phone:
+ *   post:
+ *     summary: Verify phone code
+ *     tags: [Clients, Verification]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 minLength: 4
+ *                 maxLength: 10
+ *     responses:
+ *       200:
+ *         description: Phone verified successfully
+ *       400:
+ *         description: Invalid code or expired
+ */
+router.post('/:id/verify/phone', validate(verifyPhoneSchema), verificationApi('verifyPhone'));
+
+/**
+ * @swagger
+ * /api/clients/{id}/verify/email/send:
+ *   post:
+ *     summary: Send verification code to email
+ *     tags: [Clients, Verification]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Verification code sent successfully
+ *       400:
+ *         description: Invalid request
+ */
+router.post('/:id/verify/email/send', validate(sendEmailVerificationSchema), verificationApi('sendEmailVerification'));
+
+/**
+ * @swagger
+ * /api/clients/{id}/verify/email:
+ *   post:
+ *     summary: Verify email code
+ *     tags: [Clients, Verification]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 minLength: 4
+ *                 maxLength: 10
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid code or expired
+ */
+router.post('/:id/verify/email', validate(verifyEmailSchema), verificationApi('verifyEmail'));
+
+/**
+ * @swagger
+ * /api/clients/{id}/verify/status:
+ *   get:
+ *     summary: Get verification status
+ *     tags: [Clients, Verification]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     responses:
+ *       200:
+ *         description: Verification status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 phoneVerified:
+ *                   type: boolean
+ *                 emailVerified:
+ *                   type: boolean
+ *                 phoneVerifiedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 emailVerifiedAt:
+ *                   type: string
+ *                   format: date-time
+ */
+router.get('/:id/verify/status', verificationApi('getVerificationStatus'));
 
 export default router;
 
