@@ -60,7 +60,7 @@ export class PlatformUsersService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

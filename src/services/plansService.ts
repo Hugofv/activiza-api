@@ -52,7 +52,7 @@ export class PlansService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

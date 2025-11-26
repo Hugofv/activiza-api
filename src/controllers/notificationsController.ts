@@ -2,11 +2,11 @@
  * Notifications Controller
  */
 
-import { IReq, IRes } from '../common/types';
-import { BaseController } from '../common/BaseController';
-import { NotificationsService } from '../services/notificationsService';
-import { serializeBigInt } from '../utils/serializeBigInt';
-import { parsePaginationParams } from '../utils/pagination';
+import { IReq, IRes } from '~@/common/types';
+import { BaseController } from '~@/common/BaseController';
+import { NotificationsService } from '~@/services/notificationsService';
+import { serializeBigInt } from '~@/utils/serializeBigInt';
+import { parsePaginationParams } from '~@/utils/pagination';
 export class NotificationsController extends BaseController {
   private notificationsService: NotificationsService;
   

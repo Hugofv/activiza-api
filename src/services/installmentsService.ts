@@ -53,7 +53,7 @@ export class InstallmentsService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

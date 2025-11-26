@@ -7,8 +7,8 @@
     "dev:debug": "nodemon --exec 'node --inspect -r ts-node/register -r tsconfig-paths/register ./src/index.ts'",
     "build": "tsc",
     "prisma": "prisma",
-    "start": "node dist/index.js",
-    "scheduler": "node dist/scheduler/index.js",
+    "start": "node -r module-alias/register dist/index.js",
+    "scheduler": "node -r module-alias/register dist/scheduler/index.js",
     "seed": "npx prisma db seed"
   },
   "prisma": {
@@ -25,7 +25,7 @@
     "exec": "./node_modules/.bin/ts-node --files -r tsconfig-paths/register ./src"
   },
   "_moduleAliases": {
-    "@src": "dist"
+    "~@": "dist"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
@@ -46,6 +46,7 @@
     "helmet": "^8.1.0",
     "jet-logger": "^2.0.1",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "morgan": "^1.10.0",
     "node-cron": "^4.0.7",
     "nodemon": "^3.1.10",

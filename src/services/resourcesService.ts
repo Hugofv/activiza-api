@@ -58,7 +58,7 @@ export class ResourcesService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

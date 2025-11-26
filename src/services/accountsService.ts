@@ -60,7 +60,7 @@ export class AccountsService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

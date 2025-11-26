@@ -48,7 +48,7 @@ export class SettingsService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

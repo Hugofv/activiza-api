@@ -47,7 +47,7 @@ export class ClientsService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,

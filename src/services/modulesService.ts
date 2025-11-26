@@ -46,7 +46,7 @@ export class ModulesService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,
