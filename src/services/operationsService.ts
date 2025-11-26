@@ -8,6 +8,7 @@ import { CreateOperationDto, UpdateOperationDto } from '../dtos/operations.dto';
 import { calculateNextDueDate, roundToTwoDecimals } from '../utils/dateHelpers';
 import { InstallmentStatus } from '../constants/enums';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class OperationsService {
   private prisma: PrismaClient;
@@ -96,14 +97,14 @@ export class OperationsService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: bigint, includeDeleted = false) {

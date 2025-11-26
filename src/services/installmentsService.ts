@@ -5,6 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { UpdateInstallmentDto } from '../dtos/installments.dto';
 import { InstallmentStatus } from '../constants/enums';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class InstallmentsService {
   private prisma: PrismaClient;
@@ -60,7 +61,7 @@ export class InstallmentsService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: bigint) {

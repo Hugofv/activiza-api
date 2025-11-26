@@ -5,7 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { CreateModuleDto, UpdateModuleDto } from '../dtos/modules.dto';
 import { InputJsonValue } from '@prisma/client/runtime/library';
-
+import { PaginationResult } from '~@/utils/pagination';
 export class ModulesService {
   private prisma: PrismaClient;
 
@@ -53,7 +53,7 @@ export class ModulesService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {
@@ -90,7 +90,8 @@ export class ModulesService {
     const updateData: any = {};
 
     if (rest.name !== undefined) updateData.name = rest.name;
-    if (rest.description !== undefined) updateData.description = rest.description;
+    if (rest.description !== undefined)
+      updateData.description = rest.description;
     if (rest.category !== undefined) updateData.category = rest.category;
     if (rest.isActive !== undefined) updateData.isActive = rest.isActive;
     if (rest.sortOrder !== undefined) updateData.sortOrder = rest.sortOrder;

@@ -4,6 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export interface CreateAlertDto {
   operationId: bigint;
@@ -66,7 +67,7 @@ export class AlertsService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {

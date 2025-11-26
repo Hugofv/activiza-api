@@ -4,6 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { UserRole } from '../constants/enums';
+import { PaginationResult } from '~@/utils/pagination';
 
 export interface CreatePlatformUserDto {
   name: string;
@@ -67,7 +68,7 @@ export class PlatformUsersService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {

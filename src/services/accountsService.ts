@@ -7,6 +7,7 @@ import { CreateAccountDto, UpdateAccountDto } from '../dtos/accounts.dto';
 import { Currency, UserRole } from '../constants/enums';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 import bcrypt from 'bcrypt';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class AccountsService {
   private prisma: PrismaClient;
@@ -67,7 +68,7 @@ export class AccountsService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {

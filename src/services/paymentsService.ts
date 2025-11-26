@@ -5,6 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { CreatePaymentDto } from '../dtos/payments.dto';
 import { InstallmentStatus } from '../constants/enums';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class PaymentsService {
   private prisma: PrismaClient;
@@ -69,7 +70,7 @@ export class PaymentsService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: bigint) {

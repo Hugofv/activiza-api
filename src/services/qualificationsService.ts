@@ -9,6 +9,7 @@ import {
   SaveQualificationAnswersDto 
 } from '../dtos/qualifications.dto';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class QualificationsService {
   private prisma: PrismaClient;
@@ -63,14 +64,14 @@ export class QualificationsService {
     ]);
 
     return {
-      data,
+      results: data,
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {

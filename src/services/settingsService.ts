@@ -4,6 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export interface CreateSettingDto {
   accountId?: number;
@@ -55,7 +56,7 @@ export class SettingsService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findByKey(accountId: number | null, key: string) {

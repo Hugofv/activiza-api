@@ -5,6 +5,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { CreateFeatureDto, UpdateFeatureDto } from '../dtos/features.dto';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class FeaturesService {
   private prisma: PrismaClient;
@@ -65,7 +66,7 @@ export class FeaturesService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {

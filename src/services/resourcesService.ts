@@ -5,6 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { ResourceType } from '../constants/enums';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export interface CreateResourceDto {
   accountId: number;
@@ -65,7 +66,7 @@ export class ResourcesService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {

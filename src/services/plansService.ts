@@ -5,6 +5,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { CreatePlanDto, UpdatePlanDto } from '../dtos/plans.dto';
 import { InputJsonValue } from '@prisma/client/runtime/library';
+import { PaginationResult } from '~@/utils/pagination';
 
 export class PlansService {
   private prisma: PrismaClient;
@@ -59,7 +60,7 @@ export class PlansService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    };
+    } as PaginationResult<any>;
   }
 
   async findById(id: number, includeDeleted = false) {
