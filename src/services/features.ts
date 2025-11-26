@@ -2,7 +2,7 @@
  * Features Service
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { CreateFeatureDto, UpdateFeatureDto } from '../dtos/features.dto';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 
@@ -31,7 +31,7 @@ export class FeaturesService {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.feature.findMany({
+      (this.prisma.feature.findMany as any)({
         where,
         skip,
         take: limit,
@@ -46,6 +46,7 @@ export class FeaturesService {
               },
             },
           },
+          prices: true, // Include feature prices
           creator: true,
           updater: true,
         },
@@ -70,7 +71,7 @@ export class FeaturesService {
     if (!includeDeleted) {
       where.deletedAt = null;
     }
-    return this.prisma.feature.findFirst({
+    return (this.prisma.feature.findFirst as any)({
       where,
       include: {
         plans: {
@@ -78,6 +79,7 @@ export class FeaturesService {
             plan: true,
           },
         },
+        prices: true, // Include feature prices
         creator: true,
         updater: true,
       },
@@ -85,7 +87,7 @@ export class FeaturesService {
   }
 
   async findByKey(key: string) {
-    return this.prisma.feature.findUnique({
+    return (this.prisma.feature.findUnique as any)({
       where: { key },
       include: {
         plans: {
@@ -93,16 +95,27 @@ export class FeaturesService {
             plan: true,
           },
         },
+        prices: true, // Include feature prices
       },
     });
   }
 
   async create(dto: CreateFeatureDto, createdBy?: number) {
-    return this.prisma.feature.create({
+    const { prices, meta, ...rest } = dto;
+    return (this.prisma.feature.create as any)({
       data: {
-        ...dto,
-        meta: dto.meta as unknown as InputJsonValue,
-        createdBy,
+        ...rest,
+        ...(meta !== undefined && { meta: meta as unknown as InputJsonValue }),
+        ...(createdBy !== undefined && { createdBy }),
+        ...(prices && prices.length > 0 && {
+          prices: {
+            create: prices.map(p => ({
+              currency: p.currency,
+              price: new Prisma.Decimal(p.price),
+              isDefault: p.isDefault,
+            })),
+          },
+        }),
       },
       include: {
         plans: {
@@ -110,22 +123,43 @@ export class FeaturesService {
             plan: true,
           },
         },
+        prices: true, // Include feature prices
       },
     });
   }
 
   async update(id: number, dto: UpdateFeatureDto, updatedBy?: number) {
+    const { prices, meta, ...rest } = dto;
     const updateData: any = {};
     
-    if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.description !== undefined) updateData.description = dto.description;
-    if (dto.category !== undefined) updateData.category = dto.category;
-    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
-    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
-    if (dto.meta !== undefined) updateData.meta = dto.meta as unknown as InputJsonValue;
+    if (rest.name !== undefined) updateData.name = rest.name;
+    if (rest.description !== undefined) updateData.description = rest.description;
+    if (rest.category !== undefined) updateData.category = rest.category;
+    if (rest.isActive !== undefined) updateData.isActive = rest.isActive;
+    if (rest.sortOrder !== undefined) updateData.sortOrder = rest.sortOrder;
+    if (meta !== undefined) updateData.meta = meta as unknown as InputJsonValue;
     if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
     
-    return this.prisma.feature.update({
+    // Handle prices update
+    if (prices !== undefined) {
+      // Delete existing prices
+      await (this.prisma as any).featurePrice.deleteMany({
+        where: { featureId: id },
+      });
+      
+      // Create new prices if provided
+      if (prices.length > 0) {
+        updateData.prices = {
+          create: prices.map(p => ({
+            currency: p.currency,
+            price: new Prisma.Decimal(p.price),
+            isDefault: p.isDefault,
+          })),
+        };
+      }
+    }
+    
+    return (this.prisma.feature.update as any)({
       where: { id },
       data: updateData,
       include: {
@@ -134,6 +168,7 @@ export class FeaturesService {
             plan: true,
           },
         },
+        prices: true, // Include feature prices
       },
     });
   }

@@ -438,10 +438,26 @@ model Feature {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   plans       PlanFeature[]
+  prices      FeaturePrice[] // Multiple prices for different currencies
   creator     PlatformUser? @relation("FeatureCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   updater     PlatformUser? @relation("FeatureUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@map("features")
+}
+
+model FeaturePrice {
+  id          Int       @id @default(autoincrement())
+  featureId   Int       @map("feature_id")
+  currency    String    // e.g., "BRL", "USD", "EUR"
+  price       Decimal   @db.Decimal(10, 2) // Price in this currency
+  isDefault   Boolean   @default(false) @map("is_default") // Default price for this currency
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  feature     Feature   @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([featureId, currency])
+  @@map("feature_prices")
 }
 
 model PlanFeature {
