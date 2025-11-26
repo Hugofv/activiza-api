@@ -8,6 +8,7 @@ import { ClientsService } from '../services/clients';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
 import { PrismaClient } from '@prisma/client';
+import { getActorFromUser } from '../utils/audit';
 
 export class ClientsController extends BaseController {
   private clientsService: ClientsService;
@@ -47,9 +48,10 @@ export class ClientsController extends BaseController {
     const body = req.body as any;
     const accountId = body.accountId || req.user?.accountId;
 
+    const actor = getActorFromUser(req.user);
     const client = await this.clientsService.create(
       { ...body, accountId },
-      req.user?.id
+      actor
     );
     this.created(serializeBigInt(client));
   }
@@ -57,7 +59,8 @@ export class ClientsController extends BaseController {
   async update(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
     const id = Number(req.params.id);
-    const client = await this.clientsService.update(id, req.body as any, req.user?.id);
+    const actor = getActorFromUser(req.user);
+    const client = await this.clientsService.update(id, req.body as any, actor);
     this.ok(serializeBigInt(client));
   }
 

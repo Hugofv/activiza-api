@@ -7,7 +7,9 @@ import { CreatePlanDto, UpdatePlanDto } from '../dtos/plans.dto';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 
 export class PlansService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) {
+    
+  }
 
   async findAll(filters: { 
     page?: number; 
@@ -85,7 +87,7 @@ export class PlansService {
     });
   }
 
-  async create(dto: CreatePlanDto, createdBy?: number) {
+  async create(dto: CreatePlanDto, createdBy?: string) {
     const { featureIds, featurePricing, ...planData } = dto;
 
     // Create plan
@@ -95,8 +97,8 @@ export class PlansService {
         price: new Prisma.Decimal(planData.price),
         featurePricing: featurePricing as unknown as InputJsonValue,
         meta: planData.meta as unknown as InputJsonValue,
-        createdBy,
-      },
+        ...(createdBy !== undefined && { createdBy }),
+      } as any,
       include: {
         features: {
           include: {
@@ -121,7 +123,7 @@ export class PlansService {
     return this.findById(plan.id);
   }
 
-  async update(id: number, dto: UpdatePlanDto, updatedBy?: number) {
+  async update(id: number, dto: UpdatePlanDto, updatedBy?: string) {
     const { featureIds, featurePricing, ...planData } = dto;
 
     const updateData: any = {};

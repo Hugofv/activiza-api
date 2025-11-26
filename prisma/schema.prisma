@@ -31,38 +31,7 @@ model PlatformUser {
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
   accounts               Account[]        @relation("AccountOwner")
-  createdAccounts        Account[]        @relation("AccountCreator")
-  updatedAccounts        Account[]        @relation("AccountUpdater")
-  createdAddresses       Address[]        @relation("AddressCreator")
-  updatedAddresses       Address[]        @relation("AddressUpdater")
-  createdClients         Client[]         @relation("ClientCreator")
-  updatedClients         Client[]         @relation("ClientUpdater")
-  createdClientPhotos    ClientPhoto[]    @relation("ClientPhotoCreator")
-  updatedClientPhotos    ClientPhoto[]    @relation("ClientPhotoUpdater")
-  createdOperations      Operation[]      @relation("OperationCreator")
-  updatedOperations      Operation[]      @relation("OperationUpdater")
-  createdOperationPhotos OperationPhoto[] @relation("OperationPhotoCreator")
-  updatedOperationPhotos OperationPhoto[] @relation("OperationPhotoUpdater")
-  createdInstallments    Installment[]    @relation("InstallmentCreator")
-  updatedInstallments    Installment[]    @relation("InstallmentUpdater")
-  createdPayments        Payment[]        @relation("PaymentCreator")
-  updatedPayments        Payment[]        @relation("PaymentUpdater")
-  createdResources       Resource[]       @relation("ResourceCreator")
-  updatedResources       Resource[]       @relation("ResourceUpdater")
-  createdAlerts          Alert[]          @relation("AlertCreator")
-  updatedAlerts          Alert[]          @relation("AlertUpdater")
-  createdNotifications   Notification[]   @relation("NotificationCreator")
-  updatedNotifications   Notification[]   @relation("NotificationUpdater")
   notificationUser       Notification[]   @relation("NotificationUser")
-  createdSettings        Setting[]        @relation("SettingCreator")
-  updatedSettings        Setting[]        @relation("SettingUpdater")
-  auditLogs              AuditLog[]       @relation("AuditLogUser")
-  createdPlans           Plan[]           @relation("PlanCreator")
-  updatedPlans            Plan[]           @relation("PlanUpdater")
-  createdFeatures         Feature[]        @relation("FeatureCreator")
-  updatedFeatures         Feature[]        @relation("FeatureUpdater")
-  createdLeadQualifications LeadQualification[] @relation("LeadQualificationCreator")
-  updatedLeadQualifications LeadQualification[] @relation("LeadQualificationUpdater")
 
   @@map("platform_users")
 }
@@ -78,15 +47,13 @@ model Account {
   planId    Int?      @map("plan_id")
   meta      Json?
   ownerId   Int?      @map("owner_id")
-  createdBy Int?      @map("created_by")
-  updatedBy Int?      @map("updated_by")
+  createdBy String?   @map("created_by") // e.g. "{id}-{email}"
+  updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   owner      PlatformUser? @relation("AccountOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  creator    PlatformUser? @relation("AccountCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater    PlatformUser? @relation("AccountUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
   plan       Plan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
   address    Address?
   clients    Client[]
@@ -111,8 +78,8 @@ model Address {
   accountId    Int?      @unique @map("account_id")
   clientId     Int?      @unique @map("client_id")
   resourceId   Int?      @unique @map("resource_id")
-  createdBy    Int?      @map("created_by")
-  updatedBy    Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt    DateTime? @map("deleted_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
@@ -120,9 +87,6 @@ model Address {
   account  Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   client   Client?       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   resource Resource?     @relation("ResourceAddress")
-  creator  PlatformUser? @relation("AddressCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater  PlatformUser? @relation("AddressUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
-
   @@map("addresses")
 }
 
@@ -134,16 +98,14 @@ model Client {
   phone     String?
   email     String?
   meta      Json?
-  createdBy Int?      @map("created_by")
-  updatedBy Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   account    Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   address    Address?
-  creator    PlatformUser? @relation("ClientCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater    PlatformUser? @relation("ClientUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
   operations Operation[]
   payments   Payment[]
   photos     ClientPhoto[]
@@ -157,16 +119,13 @@ model ClientPhoto {
   clientId  Int       @map("client_id")
   url       String
   meta      Json?
-  createdBy Int?      @map("created_by")
-  updatedBy Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   client  Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator PlatformUser? @relation("ClientPhotoCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater PlatformUser? @relation("ClientPhotoUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
-
   @@map("client_photos")
 }
 
@@ -191,16 +150,14 @@ model Operation {
   meta            Json?
   status          String?
   resourceId      Int?      @map("resource_id")
-  createdBy       Int?      @map("created_by")
-  updatedBy       Int?      @map("updated_by")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
   deletedAt       DateTime? @map("deleted_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   account          Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
   client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator          PlatformUser?    @relation("OperationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater          PlatformUser?    @relation("OperationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
   installmentsList Installment[]    @relation("OperationInstallments")
   photos           OperationPhoto[]
   resource         Resource?        @relation(fields: [resourceId], references: [id])
@@ -216,16 +173,13 @@ model OperationPhoto {
   operationId BigInt    @map("operation_id") @db.BigInt
   url         String
   meta        Json?
-  createdBy   Int?      @map("created_by")
-  updatedBy   Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   operation Operation     @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  creator   PlatformUser? @relation("OperationPhotoCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater   PlatformUser? @relation("OperationPhotoUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
-
   @@map("operation_photos")
 }
 
@@ -241,15 +195,13 @@ model Installment {
   paidAt         DateTime? @map("paid_at")
   lateFeePercent Decimal?  @map("late_fee_percent")
   notes          String?
-  createdBy      Int?      @map("created_by")
-  updatedBy      Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt      DateTime? @map("deleted_at")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   operation Operation     @relation("OperationInstallments", fields: [operationId], references: [id], onDelete: Cascade)
-  creator   PlatformUser? @relation("InstallmentCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater   PlatformUser? @relation("InstallmentUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
   payments  Payment[]
 
   @@map("installments")
@@ -267,8 +219,8 @@ model Payment {
   method        String?
   reference     String?
   meta          Json?
-  createdBy     Int?      @map("created_by")
-  updatedBy     Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt     DateTime? @map("deleted_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
@@ -276,9 +228,6 @@ model Payment {
   client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   installment Installment?  @relation(fields: [installmentId], references: [id], onDelete: SetNull)
   operation   Operation     @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  creator     PlatformUser? @relation("PaymentCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater     PlatformUser? @relation("PaymentUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
-
   @@map("payments")
 }
 
@@ -291,16 +240,14 @@ model Resource {
   addressId   Int?      @unique @map("address_id")
   photos      Json?
   meta        Json?
-  createdBy   Int?      @map("created_by")
-  updatedBy   Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   account    Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
   address    Address?      @relation("ResourceAddress", fields: [addressId], references: [id], onDelete: SetNull)
-  creator    PlatformUser? @relation("ResourceCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater    PlatformUser? @relation("ResourceUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
   operations Operation[]
 
   @@map("resources")
@@ -314,16 +261,13 @@ model Alert {
   template    String?
   enabled     Boolean   @default(true)
   meta        Json?
-  createdBy   Int?      @map("created_by")
-  updatedBy   Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   operation Operation     @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  creator   PlatformUser? @relation("AlertCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater   PlatformUser? @relation("AlertUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
-
   @@map("alerts")
 }
 
@@ -336,15 +280,13 @@ model Notification {
   sentAt    DateTime? @map("sent_at")
   read      Boolean   @default(false)
   meta      Json?
-  createdBy Int?      @map("created_by")
-  updatedBy Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   user    PlatformUser  @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
-  creator PlatformUser? @relation("NotificationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater PlatformUser? @relation("NotificationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@map("notifications")
 }
@@ -354,15 +296,13 @@ model Setting {
   accountId Int?      @map("account_id")
   key       String
   value     Json?
-  createdBy Int?      @map("created_by")
-  updatedBy Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   account Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  creator PlatformUser? @relation("SettingCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater PlatformUser? @relation("SettingUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@unique([accountId, key])
   @@map("settings")
@@ -370,7 +310,7 @@ model Setting {
 
 model AuditLog {
   id        Int       @id @default(autoincrement())
-  userId    Int?      @map("user_id")
+  actor     String?   @map("actor") // e.g. \"{id}-{email}\" at log time, no FK to keep trail even if user changes
   action    String
   entity    String?
   entityId  String?   @map("entity_id")
@@ -380,8 +320,6 @@ model AuditLog {
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
-
-  user PlatformUser? @relation("AuditLogUser", fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }
@@ -408,16 +346,14 @@ model Plan {
   featurePricing    Json?     @map("feature_pricing") // { featureId: price }
   
   meta              Json?
-  createdBy         Int?      @map("created_by")
-  updatedBy         Int?      @map("updated_by")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
   deletedAt         DateTime? @map("deleted_at")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
   features          PlanFeature[]
   accounts          Account[]
-  creator           PlatformUser? @relation("PlanCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater           PlatformUser? @relation("PlanUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@map("plans")
 }
@@ -428,21 +364,42 @@ model Feature {
   name        String
   description String?
   category    String?   // e.g., "reports", "integrations", "automation"
+  moduleId    Int?      @map("module_id")
   isActive    Boolean   @default(true) @map("is_active")
   sortOrder   Int       @default(0) @map("sort_order")
   meta        Json?
-  createdBy   Int?      @map("created_by")
-  updatedBy   Int?      @map("updated_by")
+  createdByActor String?   @map("created_by")
+  updatedByActor String?   @map("updated_by")
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  plans       PlanFeature[]
-  prices      FeaturePrice[] // Multiple prices for different currencies
-  creator     PlatformUser? @relation("FeatureCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater     PlatformUser? @relation("FeatureUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  module     Module?        @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  plans      PlanFeature[]
+  prices     FeaturePrice[] // Multiple prices for different currencies
 
   @@map("features")
+}
+
+// ------------ MODULES ------------
+model Module {
+  id          Int       @id @default(autoincrement())
+  key         String    @unique // e.g., "loan", "rent_room", "rent_house", "rent_vehicle"
+  name        String
+  description String?
+  category    String?   // e.g., "real_estate", "lending"
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  meta        Json?
+  createdByActor String?   @map("created_by")
+  updatedByActor String?   @map("updated_by")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  features   Feature[]
+
+  @@map("modules")
 }
 
 model FeaturePrice {
@@ -486,16 +443,14 @@ model LeadQualification {
   answer      Json?     // Can be string, number, array, object
   score       Int?      // Qualification score (0-100)
   metadata    Json?     // Additional data
-  createdBy   Int?      @map("created_by")
-  updatedBy   Int?      @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   account     Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   client      Client?       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator     PlatformUser? @relation("LeadQualificationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater     PlatformUser? @relation("LeadQualificationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@map("lead_qualifications")
 }

@@ -69,7 +69,7 @@ export class AccountsService {
     });
   }
 
-  async create(dto: CreateAccountDto, createdBy?: number) {
+  async create(dto: CreateAccountDto, createdBy?: string) {
     // Validate currency
     if (dto.currency && !Object.values(Currency).includes(dto.currency as Currency)) {
       throw new Error(`Invalid currency: ${dto.currency}`);
@@ -127,8 +127,8 @@ export class AccountsService {
         planId: (dto as any).planId || undefined, // Use planId instead of plan string
         meta: dto.meta as unknown as InputJsonValue,
         ownerId,
-        createdBy,
-      },
+        ...(createdBy !== undefined && { createdBy }),
+      } as any,
       include: {
         owner: true,
         address: true,

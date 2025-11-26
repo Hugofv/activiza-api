@@ -8,6 +8,7 @@ import { QualificationsService } from '../../services/qualifications';
 import { serializeBigInt } from '../../utils/serializeBigInt';
 import { parsePaginationParams } from '../../utils/pagination';
 import { PrismaClient } from '@prisma/client';
+import { getActorFromUser } from '../../utils/audit';
 
 export class AdminQualificationsController extends BaseController {
   private qualificationsService: QualificationsService;
@@ -56,20 +57,20 @@ export class AdminQualificationsController extends BaseController {
 
   async create(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
-    const qualification = await this.qualificationsService.create(req.body as any, req.user?.id);
+    const qualification = await this.qualificationsService.create(req.body as any, getActorFromUser(req.user));
     this.created(serializeBigInt(qualification));
   }
 
   async saveAnswers(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
-    const qualifications = await this.qualificationsService.saveAnswers(req.body as any, req.user?.id);
+    const qualifications = await this.qualificationsService.saveAnswers(req.body as any, getActorFromUser(req.user));
     this.ok(serializeBigInt(qualifications));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
     const id = Number(req.params.id);
-    const qualification = await this.qualificationsService.update(id, req.body as any, req.user?.id);
+    const qualification = await this.qualificationsService.update(id, req.body as any, getActorFromUser(req.user));
     this.ok(serializeBigInt(qualification));
   }
 

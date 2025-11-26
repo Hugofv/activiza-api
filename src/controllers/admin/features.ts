@@ -8,6 +8,7 @@ import { FeaturesService } from '../../services/features';
 import { serializeBigInt } from '../../utils/serializeBigInt';
 import { parsePaginationParams } from '../../utils/pagination';
 import { PrismaClient } from '@prisma/client';
+import { getActorFromUser } from '../../utils/audit';
 
 export class AdminFeaturesController extends BaseController {
   private featuresService: FeaturesService;
@@ -55,14 +56,14 @@ export class AdminFeaturesController extends BaseController {
 
   async create(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
-    const feature = await this.featuresService.create(req.body as any, req.user?.id);
+    const feature = await this.featuresService.create(req.body as any, getActorFromUser(req.user));
     this.created(serializeBigInt(feature));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
     const id = Number(req.params.id);
-    const feature = await this.featuresService.update(id, req.body as any, req.user?.id);
+    const feature = await this.featuresService.update(id, req.body as any, getActorFromUser(req.user));
     this.ok(serializeBigInt(feature));
   }
 

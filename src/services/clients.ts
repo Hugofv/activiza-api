@@ -72,7 +72,7 @@ export class ClientsService {
     });
   }
 
-  async create(dto: CreateClientDto, createdBy?: number) {
+  async create(dto: CreateClientDto, createdBy?: string) {
     // Check if document already exists
     const existingClient = await this.prisma.client.findFirst({
       where: { 
@@ -150,7 +150,7 @@ export class ClientsService {
     });
   }
 
-  async update(id: number, dto: UpdateClientDto, updatedBy?: number) {
+  async update(id: number, dto: UpdateClientDto, updatedBy?: string) {
     // Check if document is being updated and if it already exists
     if (dto.document) {
       const existingClient = await this.prisma.client.findFirst({

@@ -107,14 +107,18 @@ export class QualificationsService {
     });
   }
 
-  async create(dto: CreateQualificationDto, createdBy?: number) {
+  async create(dto: CreateQualificationDto, createdBy?: string) {
     return this.prisma.leadQualification.create({
       data: {
-        ...dto,
+        questionKey: dto.questionKey,
+        question: dto.question,
         answer: dto.answer as unknown as InputJsonValue,
+        score: dto.score,
         metadata: dto.metadata as unknown as InputJsonValue,
-        createdBy,
-      },
+        ...(dto.accountId !== undefined && { accountId: dto.accountId }),
+        ...(dto.clientId !== undefined && { clientId: dto.clientId }),
+        ...(createdBy !== undefined && { createdBy }),
+      } as any,
       include: {
         account: true,
         client: true,
@@ -122,7 +126,7 @@ export class QualificationsService {
     });
   }
 
-  async saveAnswers(dto: SaveQualificationAnswersDto, createdBy?: number) {
+  async saveAnswers(dto: SaveQualificationAnswersDto, createdBy?: string) {
     const { accountId, clientId, answers } = dto;
 
     // Delete existing answers for this account/client
@@ -142,14 +146,14 @@ export class QualificationsService {
       answers.map(answer =>
         this.prisma.leadQualification.create({
           data: {
-            accountId,
-            clientId,
             questionKey: answer.questionKey,
             question: answer.questionKey, // Will be filled from template
             answer: answer.answer as unknown as InputJsonValue,
             score: answer.score,
-            createdBy,
-          },
+            ...(accountId !== undefined && { accountId }),
+            ...(clientId !== undefined && { clientId }),
+            ...(createdBy !== undefined && { createdBy }),
+          } as any,
         })
       )
     );
@@ -157,7 +161,7 @@ export class QualificationsService {
     return qualifications;
   }
 
-  async update(id: number, dto: UpdateQualificationDto, updatedBy?: number) {
+  async update(id: number, dto: UpdateQualificationDto, updatedBy?: string) {
     const updateData: any = {};
     
     if (dto.accountId !== undefined) updateData.accountId = dto.accountId;

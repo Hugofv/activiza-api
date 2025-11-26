@@ -100,7 +100,7 @@ export class FeaturesService {
     });
   }
 
-  async create(dto: CreateFeatureDto, createdBy?: number) {
+  async create(dto: CreateFeatureDto, createdBy?: string) {
     const { prices, meta, ...rest } = dto;
     return (this.prisma.feature.create as any)({
       data: {
@@ -128,7 +128,7 @@ export class FeaturesService {
     });
   }
 
-  async update(id: number, dto: UpdateFeatureDto, updatedBy?: number) {
+  async update(id: number, dto: UpdateFeatureDto, updatedBy?: string) {
     const { prices, meta, ...rest } = dto;
     const updateData: any = {};
     

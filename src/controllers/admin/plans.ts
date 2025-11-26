@@ -8,6 +8,7 @@ import { PlansService } from '../../services/plans';
 import { serializeBigInt } from '../../utils/serializeBigInt';
 import { parsePaginationParams } from '../../utils/pagination';
 import { PrismaClient } from '@prisma/client';
+import { getActorFromUser } from '../../utils/audit';
 
 export class AdminPlansController extends BaseController {
   private plansService: PlansService;
@@ -42,14 +43,14 @@ export class AdminPlansController extends BaseController {
 
   async create(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
-    const plan = await this.plansService.create(req.body as any, req.user?.id);
+    const plan = await this.plansService.create(req.body as any, getActorFromUser(req.user));
     this.created(serializeBigInt(plan));
   }
 
   async update(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
     const id = Number(req.params.id);
-    const plan = await this.plansService.update(id, req.body as any, req.user?.id);
+    const plan = await this.plansService.update(id, req.body as any, getActorFromUser(req.user));
     this.ok(serializeBigInt(plan));
   }
 
