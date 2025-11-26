@@ -115,13 +115,19 @@ export class FeaturesService {
   }
 
   async update(id: number, dto: UpdateFeatureDto, updatedBy?: number) {
+    const updateData: any = {};
+    
+    if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.description !== undefined) updateData.description = dto.description;
+    if (dto.category !== undefined) updateData.category = dto.category;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
+    if (dto.meta !== undefined) updateData.meta = dto.meta as unknown as InputJsonValue;
+    if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
+    
     return this.prisma.feature.update({
       where: { id },
-      data: {
-        ...dto,
-        ...(dto.meta && { meta: dto.meta as unknown as InputJsonValue }),
-        ...(updatedBy !== undefined && { updatedBy }),
-      },
+      data: updateData,
       include: {
         plans: {
           include: {

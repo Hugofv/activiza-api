@@ -7,10 +7,14 @@ import { BaseController } from '../common/BaseController';
 import { AccountsService } from '../services/accounts';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class AccountsController extends BaseController {
-  constructor(private accountsService: AccountsService) {
+  private accountsService: AccountsService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.accountsService = new AccountsService(prisma as PrismaClient);
   }
 
   async index(req: IReq, res: IRes): Promise<void> {
@@ -19,8 +23,13 @@ export class AccountsController extends BaseController {
     const q = req.query.q as string | undefined;
     const ownerId = req.query.ownerId ? Number(req.query.ownerId) : undefined;
 
-    const result = await this.accountsService.findAll({ page, limit, q, ownerId });
-    this.ok(serializeBigInt(result));
+    const result = await this.accountsService.findAll({
+      page,
+      limit,
+      q,
+      ownerId,
+    });
+    this.ok(serializeBigInt(result as any));
   }
 
   async show(req: IReq, res: IRes): Promise<void> {
@@ -33,7 +42,7 @@ export class AccountsController extends BaseController {
       return;
     }
 
-    this.ok(serializeBigInt(account));
+    this.ok(serializeBigInt(account as any));
   }
 
   async create(req: IReq, res: IRes): Promise<void> {
@@ -45,8 +54,8 @@ export class AccountsController extends BaseController {
   async update(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);
     const id = Number(req.params.id);
-    const account = await this.accountsService.update(id, req.body);
-    this.ok(serializeBigInt(account));
+    const account = await this.accountsService.update(id, req.body as any);
+    this.ok(serializeBigInt(account as any));
   }
 
   async delete(req: IReq, res: IRes): Promise<void> {
@@ -56,4 +65,3 @@ export class AccountsController extends BaseController {
     this.noContent();
   }
 }
-

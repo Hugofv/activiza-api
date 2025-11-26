@@ -124,13 +124,23 @@ export class PlansService {
   async update(id: number, dto: UpdatePlanDto, updatedBy?: number) {
     const { featureIds, featurePricing, ...planData } = dto;
 
-    const updateData: any = {
-      ...planData,
-      ...(planData.price !== undefined && { price: new Prisma.Decimal(planData.price) }),
-      ...(featurePricing && { featurePricing: featurePricing as unknown as InputJsonValue }),
-      ...(planData.meta && { meta: planData.meta as unknown as InputJsonValue }),
-      ...(updatedBy !== undefined && { updatedBy }),
-    };
+    const updateData: any = {};
+    
+    if (planData.name !== undefined) updateData.name = planData.name;
+    if (planData.description !== undefined) updateData.description = planData.description;
+    if (planData.price !== undefined) updateData.price = new Prisma.Decimal(planData.price);
+    if (planData.currency !== undefined) updateData.currency = planData.currency;
+    if (planData.billingPeriod !== undefined) updateData.billingPeriod = planData.billingPeriod;
+    if (planData.isActive !== undefined) updateData.isActive = planData.isActive;
+    if (planData.isPublic !== undefined) updateData.isPublic = planData.isPublic;
+    if (planData.sortOrder !== undefined) updateData.sortOrder = planData.sortOrder;
+    if (planData.maxOperations !== undefined) updateData.maxOperations = planData.maxOperations;
+    if (planData.maxClients !== undefined) updateData.maxClients = planData.maxClients;
+    if (planData.maxUsers !== undefined) updateData.maxUsers = planData.maxUsers;
+    if (planData.maxStorage !== undefined) updateData.maxStorage = planData.maxStorage;
+    if (featurePricing !== undefined) updateData.featurePricing = featurePricing as unknown as InputJsonValue;
+    if (planData.meta !== undefined) updateData.meta = planData.meta as unknown as InputJsonValue;
+    if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
 
     // Update plan
     await this.prisma.plan.update({

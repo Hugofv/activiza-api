@@ -18,6 +18,7 @@ import { errorMiddleware } from './middlewares/error.middleware';
 import authRouter from './routes/auth.routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import EnvVars from './common/EnvVars';
 
 // **** Variables **** //
 
@@ -26,10 +27,30 @@ const app = express();
 // **** Setup **** //
 
 // Basic middleware
+// CORS configuration - must allow specific origins when credentials are included
 app.use(
   cors({
-    origin: '*',
-    methods: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman, etc.) in development
+      if (!origin && EnvVars.NodeEnv === NodeEnvs.Dev.valueOf()) {
+        return callback(null, true);
+      }
+      
+      // Check if origin is in allowed list
+      if (origin && EnvVars.Cors.Origins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // Reject origin not in allowed list
+      if (EnvVars.NodeEnv === NodeEnvs.Dev.valueOf()) {
+        logger.warn(`CORS: Blocked request from origin: ${origin || 'unknown'}`);
+      }
+      callback(null, false);
+    },
+    credentials: true, // Allow credentials (cookies, authorization headers)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Authorization'],
   })
 );
 app.use(express.json());
@@ -56,7 +77,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 loadContainer(app);
 
 // Public routes (no authentication required)
-app.use('/', authRouter);
+app.use('/auth', authRouter);
 
 // Protected routes (all /api/* require authentication)
 app.use('/api', routes);

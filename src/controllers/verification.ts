@@ -5,10 +5,14 @@
 import { IReq, IRes } from '../common/types';
 import { BaseController } from '../common/BaseController';
 import { VerificationService } from '../services/verification';
+import { PrismaClient } from '@prisma/client';
 
 export class VerificationController extends BaseController {
-  constructor(private verificationService: VerificationService) {
+  private verificationService: VerificationService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.verificationService = new VerificationService(prisma);
   }
 
   /**

@@ -7,10 +7,14 @@ import { BaseController } from '../../common/BaseController';
 import { FeaturesService } from '../../services/features';
 import { serializeBigInt } from '../../utils/serializeBigInt';
 import { parsePaginationParams } from '../../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class AdminFeaturesController extends BaseController {
-  constructor(private featuresService: FeaturesService) {
+  private featuresService: FeaturesService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.featuresService = new FeaturesService(prisma);
   }
 
   async index(req: IReq, res: IRes): Promise<void> {

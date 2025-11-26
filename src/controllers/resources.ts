@@ -7,10 +7,14 @@ import { BaseController } from '../common/BaseController';
 import { ResourcesService } from '../services/resources';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class ResourcesController extends BaseController {
-  constructor(private resourcesService: ResourcesService) {
+  private resourcesService: ResourcesService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.resourcesService = new ResourcesService(prisma);
   }
 
   async index(req: IReq, res: IRes): Promise<void> {

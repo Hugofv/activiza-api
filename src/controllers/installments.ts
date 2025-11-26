@@ -7,10 +7,14 @@ import { BaseController } from '../common/BaseController';
 import { InstallmentsService } from '../services/installments';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class InstallmentsController extends BaseController {
-  constructor(private installmentsService: InstallmentsService) {
+  private installmentsService: InstallmentsService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.installmentsService = new InstallmentsService(prisma);
   }
 
   async index(req: IReq, res: IRes): Promise<void> {

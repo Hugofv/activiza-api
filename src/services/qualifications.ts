@@ -158,14 +158,20 @@ export class QualificationsService {
   }
 
   async update(id: number, dto: UpdateQualificationDto, updatedBy?: number) {
+    const updateData: any = {};
+    
+    if (dto.accountId !== undefined) updateData.accountId = dto.accountId;
+    if (dto.clientId !== undefined) updateData.clientId = dto.clientId;
+    if (dto.questionKey !== undefined) updateData.questionKey = dto.questionKey;
+    if (dto.question !== undefined) updateData.question = dto.question;
+    if (dto.answer !== undefined) updateData.answer = dto.answer as unknown as InputJsonValue;
+    if (dto.score !== undefined) updateData.score = dto.score;
+    if (dto.metadata !== undefined) updateData.metadata = dto.metadata as unknown as InputJsonValue;
+    if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
+    
     return this.prisma.leadQualification.update({
       where: { id },
-      data: {
-        ...dto,
-        ...(dto.answer && { answer: dto.answer as unknown as InputJsonValue }),
-        ...(dto.metadata && { metadata: dto.metadata as unknown as InputJsonValue }),
-        ...(updatedBy !== undefined && { updatedBy }),
-      },
+      data: updateData,
       include: {
         account: true,
         client: true,

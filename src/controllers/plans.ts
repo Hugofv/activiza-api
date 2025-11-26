@@ -8,10 +8,14 @@ import { BaseController } from '../common/BaseController';
 import { PlansService } from '../services/plans';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class PlansController extends BaseController {
-  constructor(private plansService: PlansService) {
+  private plansService: PlansService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.plansService = new PlansService(prisma);
   }
 
   /**

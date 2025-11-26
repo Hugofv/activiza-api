@@ -7,10 +7,14 @@ import { BaseController } from '../common/BaseController';
 import { PlatformUsersService } from '../services/platformUsers';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class PlatformUsersController extends BaseController {
-  constructor(private platformUsersService: PlatformUsersService) {
+  private platformUsersService: PlatformUsersService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.platformUsersService = new PlatformUsersService(prisma);
   }
 
   async index(req: IReq, res: IRes): Promise<void> {

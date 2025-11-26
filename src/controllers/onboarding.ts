@@ -5,10 +5,22 @@
 import { IReq, IRes } from '../common/types';
 import { BaseController } from '../common/BaseController';
 import { OnboardingService } from '../services/onboarding';
+import { PrismaClient } from '@prisma/client';
+import { ClientsService } from '../services/clients';
+import { AccountsService } from '../services/accounts';
+import { VerificationService } from '../services/verification';
 
 export class OnboardingController extends BaseController {
-  constructor(private onboardingService: OnboardingService) {
+  private onboardingService: OnboardingService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.onboardingService = new OnboardingService(
+      prisma,
+      new ClientsService(prisma),
+      new AccountsService(prisma),
+      new VerificationService(prisma)
+    );
   }
 
   /**

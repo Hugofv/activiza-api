@@ -25,4 +25,10 @@ export default {
     Secret: (process.env.JWT_SECRET ??  ''),
     Exp: (process.env.COOKIE_EXP ?? ''), // exp at the same time as the cookie
   },
+  Cors: {
+    // Comma-separated list of allowed origins, or '*' for all (not recommended with credentials)
+    Origins: process.env.CORS_ORIGINS 
+      ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+      : ['http://localhost:5173', 'http://localhost:3000'], // Default to common dev ports
+  },
 } as const;

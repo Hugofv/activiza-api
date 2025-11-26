@@ -7,10 +7,14 @@ import { BaseController } from '../common/BaseController';
 import { AlertsService } from '../services/alerts';
 import { serializeBigInt } from '../utils/serializeBigInt';
 import { parsePaginationParams } from '../utils/pagination';
+import { PrismaClient } from '@prisma/client';
 
 export class AlertsController extends BaseController {
-  constructor(private alertsService: AlertsService) {
+  private alertsService: AlertsService;
+  
+  constructor({ prisma }: { prisma: PrismaClient }) {
     super();
+    this.alertsService = new AlertsService(prisma);
   }
 
   async index(req: IReq, res: IRes): Promise<void> {
