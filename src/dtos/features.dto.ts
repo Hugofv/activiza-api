@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { selectOptionSchema } from './common.dto';
 
 export const featurePriceSchema = z.object({
   currency: z.string().min(1), // e.g., "BRL", "USD", "EUR"
@@ -15,6 +16,7 @@ export const createFeatureSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   category: z.string().optional(),
+  module: selectOptionSchema.optional(), // Module selection with value and label for autocomplete
   prices: z.array(featurePriceSchema).optional(), // Multiple prices for different currencies
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().default(0),

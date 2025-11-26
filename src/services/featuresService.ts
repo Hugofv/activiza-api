@@ -18,10 +18,11 @@ export class FeaturesService {
     page?: number; 
     limit?: number; 
     category?: string;
+    moduleId?: number;
     isActive?: boolean;
     includeDeleted?: boolean;
   }) {
-    const { page = 1, limit = 20, category, isActive, includeDeleted = false } = filters;
+    const { page = 1, limit = 20, category, moduleId, isActive, includeDeleted = false } = filters;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
@@ -30,6 +31,9 @@ export class FeaturesService {
     }
     if (category) {
       where.category = category;
+    }
+    if (moduleId !== undefined) {
+      where.moduleId = moduleId;
     }
     if (isActive !== undefined) {
       where.isActive = isActive;
@@ -41,6 +45,13 @@ export class FeaturesService {
         skip,
         take: limit,
         include: {
+          module: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+            },
+          },
           plans: {
             include: {
               plan: {
@@ -77,6 +88,13 @@ export class FeaturesService {
     return (this.prisma.feature.findFirst as any)({
       where,
       include: {
+        module: {
+          select: {
+            id: true,
+            key: true,
+            name: true,
+          },
+        },
         plans: {
           include: {
             plan: true,
@@ -91,6 +109,13 @@ export class FeaturesService {
     return (this.prisma.feature.findUnique as any)({
       where: { key },
       include: {
+        module: {
+          select: {
+            id: true,
+            key: true,
+            name: true,
+          },
+        },
         plans: {
           include: {
             plan: true,
@@ -102,10 +127,13 @@ export class FeaturesService {
   }
 
   async create(dto: CreateFeatureDto, createdBy?: string) {
-    const { prices, meta, ...rest } = dto;
+    const { prices, meta, module, ...rest } = dto;
+    const moduleId = module?.value;
+    
     return (this.prisma.feature.create as any)({
       data: {
         ...rest,
+        ...(moduleId !== undefined && { moduleId }),
         ...(meta !== undefined && { meta: meta as unknown as InputJsonValue }),
         ...(createdBy !== undefined && { createdBy }),
         ...(prices && prices.length > 0 && {
@@ -119,6 +147,13 @@ export class FeaturesService {
         }),
       },
       include: {
+        module: {
+          select: {
+            id: true,
+            key: true,
+            name: true,
+          },
+        },
         plans: {
           include: {
             plan: true,
@@ -130,12 +165,16 @@ export class FeaturesService {
   }
 
   async update(id: number, dto: UpdateFeatureDto, updatedBy?: string) {
-    const { prices, meta, ...rest } = dto;
+    const { prices, meta, module, ...rest } = dto;
     const updateData: any = {};
     
     if (rest.name !== undefined) updateData.name = rest.name;
     if (rest.description !== undefined) updateData.description = rest.description;
     if (rest.category !== undefined) updateData.category = rest.category;
+    // Extract moduleId from module object if provided
+    if (module !== undefined) {
+      updateData.moduleId = module?.value ?? null;
+    }
     if (rest.isActive !== undefined) updateData.isActive = rest.isActive;
     if (rest.sortOrder !== undefined) updateData.sortOrder = rest.sortOrder;
     if (meta !== undefined) updateData.meta = meta as unknown as InputJsonValue;
@@ -164,6 +203,13 @@ export class FeaturesService {
       where: { id },
       data: updateData,
       include: {
+        module: {
+          select: {
+            id: true,
+            key: true,
+            name: true,
+          },
+        },
         plans: {
           include: {
             plan: true,
