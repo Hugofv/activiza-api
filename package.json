@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon",
-    "dev:debug": "nodemon --exec 'node --inspect -r ts-node/register -r tsconfig-paths/register ./src/index.ts'",
+    "dev:debug": "nodemon --exec \"node --inspect -r ts-node/register -r tsconfig-paths/register ./src/index.ts\"",
     "build": "tsc",
     "prisma": "prisma",
     "start": "node -r module-alias/register dist/index.js",
@@ -73,5 +73,8 @@
     "@types/swagger-ui-express": "^4.1.8",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.1.6"
+  },
+  "volta": {
+    "node": "21.7.3"
   }
 }

@@ -4,6 +4,10 @@
 
 /* eslint-disable node/no-process-env */
 
+import dotenv from 'dotenv';
+
+// Load .env before reading process.env
+dotenv.config();
 
 export default {
   NodeEnv: (process.env.NODE_ENV ?? ''),

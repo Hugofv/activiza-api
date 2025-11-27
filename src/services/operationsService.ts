@@ -9,12 +9,15 @@ import { calculateNextDueDate, roundToTwoDecimals } from '../utils/dateHelpers';
 import { InstallmentStatus } from '../constants/enums';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 import { PaginationResult } from '~@/utils/pagination';
+import FeatureAuthorizationService from './featureAuthorizationService';
 
 export class OperationsService {
   private prisma: PrismaClient;
+  private featureAuthService: FeatureAuthorizationService;
 
   constructor({ prisma }: { prisma: PrismaClient }) {
     this.prisma = prisma;
+    this.featureAuthService = new FeatureAuthorizationService({ prisma });
   }
 
   /**
@@ -128,7 +131,18 @@ export class OperationsService {
   }
 
   async create(dto: CreateOperationDto) {
-    // Check plan operation limit
+    // Check feature-based operation limit (primary check)
+    const featureLimitCheck = await this.featureAuthService.checkFeatureOperationLimit(
+      dto.accountId,
+      dto.type,
+      dto.meta as Record<string, unknown> | undefined
+    );
+    
+    if (!featureLimitCheck.allowed) {
+      throw new Error(featureLimitCheck.message || 'Operation limit reached for this feature');
+    }
+
+    // Also check global plan limit (backward compatibility)
     const limitCheck = await this.checkOperationLimit(dto.accountId);
     if (!limitCheck.allowed) {
       throw new Error(limitCheck.message || 'Operation limit reached');
@@ -197,6 +211,19 @@ export class OperationsService {
         client: true,
       },
     });
+
+    // Record feature usage after successful operation creation
+    try {
+      await this.featureAuthService.recordFeatureUsage(
+        dto.accountId,
+        operation.id,
+        dto.type,
+        dto.meta as Record<string, unknown> | undefined
+      );
+    } catch (error) {
+      // Log error but don't fail operation creation if usage tracking fails
+      console.error('Failed to record feature usage:', error);
+    }
 
     return operation;
   }

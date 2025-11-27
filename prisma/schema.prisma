@@ -61,6 +61,7 @@ model Account {
   settings   Setting[]
   resources  Resource[]
   qualifications LeadQualification[]
+  featureUsages FeatureUsage[]
 
   @@map("accounts")
 }
@@ -163,6 +164,7 @@ model Operation {
   resource         Resource?        @relation(fields: [resourceId], references: [id])
   alerts           Alert[]
   payments         Payment[]
+  featureUsages    FeatureUsage[]
 
   @@map("operations")
 }
@@ -329,8 +331,6 @@ model Plan {
   id                Int       @id @default(autoincrement())
   name              String
   description       String?
-  price             Decimal   @db.Decimal(10, 2)
-  currency          String    @default("BRL")
   billingPeriod     String    @default("MONTHLY") // MONTHLY, YEARLY
   isActive          Boolean   @default(true) @map("is_active")
   isPublic          Boolean   @default(true) @map("is_public") // Show in public plans
@@ -342,8 +342,7 @@ model Plan {
   maxUsers          Int?      @map("max_users")
   maxStorage        Int?      @map("max_storage") // in MB, null = unlimited
   
-  // Feature pricing (per feature)
-  featurePricing    Json?     @map("feature_pricing") // { featureId: price }
+  // Note: Plan price is calculated from sum of enabled feature prices per currency
   
   meta              Json?
   createdBy    String?   @map("created_by")
@@ -376,7 +375,6 @@ model Feature {
 
   module     Module?        @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   plans      PlanFeature[]
-  prices     FeaturePrice[] // Multiple prices for different currencies
 
   @@map("features")
 }
@@ -402,35 +400,58 @@ model Module {
   @@map("modules")
 }
 
-model FeaturePrice {
-  id          Int       @id @default(autoincrement())
-  featureId   Int       @map("feature_id")
-  currency    String    // e.g., "BRL", "USD", "EUR"
-  price       Decimal   @db.Decimal(10, 2) // Price in this currency
-  isDefault   Boolean   @default(false) @map("is_default") // Default price for this currency
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  feature     Feature   @relation(fields: [featureId], references: [id], onDelete: Cascade)
-
-  @@unique([featureId, currency])
-  @@map("feature_prices")
-}
-
 model PlanFeature {
-  id        Int       @id @default(autoincrement())
-  planId    Int       @map("plan_id")
-  featureId Int       @map("feature_id")
-  price     Decimal?  @db.Decimal(10, 2) // Override price for this plan, null = use plan's featurePricing
-  isEnabled Boolean   @default(true) @map("is_enabled")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id            Int       @id @default(autoincrement())
+  planId        Int       @map("plan_id")
+  featureId     Int       @map("feature_id")
+  isEnabled     Boolean   @default(true) @map("is_enabled")
+  operationLimit Int?     @map("operation_limit") // Max operations allowed for this feature in this plan (null = unlimited)
+  resetPeriod   String    @default("LIFETIME") @map("reset_period") // MONTHLY, YEARLY, LIFETIME
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   plan      Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
   feature   Feature   @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  prices    PlanFeaturePrice[] // Multiple prices for different currencies
+  usages    FeatureUsage[]
 
   @@unique([planId, featureId])
   @@map("plan_features")
+}
+
+// ------------ PLAN FEATURE PRICING (Multi-currency) ------------
+model PlanFeaturePrice {
+  id            Int       @id @default(autoincrement())
+  planFeatureId Int       @map("plan_feature_id")
+  currency      String    // e.g., "BRL", "USD", "EUR"
+  price         Decimal   @db.Decimal(10, 2) // Price in this currency
+  isDefault     Boolean   @default(false) @map("is_default") // Default price for this currency
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  planFeature PlanFeature @relation(fields: [planFeatureId], references: [id], onDelete: Cascade)
+
+  @@unique([planFeatureId, currency])
+  @@map("plan_feature_prices")
+}
+
+// ------------ FEATURE USAGE TRACKING ------------
+model FeatureUsage {
+  id            Int       @id @default(autoincrement())
+  accountId     Int       @map("account_id")
+  planFeatureId Int       @map("plan_feature_id")
+  operationId   BigInt    @map("operation_id") @db.BigInt
+  usageDate     DateTime  @default(now()) @map("usage_date")
+  period        String    @map("period") // e.g., "2024-01" for monthly tracking
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  account     Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  planFeature PlanFeature @relation(fields: [planFeatureId], references: [id], onDelete: Cascade)
+  operation   Operation   @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, planFeatureId, period])
+  @@map("feature_usages")
 }
 
 // ------------ LEAD QUALIFICATION ------------

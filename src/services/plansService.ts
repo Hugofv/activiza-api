@@ -44,7 +44,8 @@ export class PlansService {
           features: {
             include: {
               feature: true,
-            },
+              prices: true, // Include plan feature prices
+            } as any,
           },
         },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -52,8 +53,14 @@ export class PlansService {
       this.prisma.plan.count({ where }),
     ]);
 
+    // Calculate prices for each plan
+    const resultsWithPrices = data.map((plan: any) => ({
+      ...plan,
+      prices: this.calculatePlanPrices(plan),
+    }));
+
     return {
-      results: data,
+      results: resultsWithPrices,
       pagination: {
         page,
         limit,
@@ -68,12 +75,13 @@ export class PlansService {
     if (!includeDeleted) {
       where.deletedAt = null;
     }
-    return this.prisma.plan.findFirst({
+    const plan = await (this.prisma.plan.findFirst as any)({
       where,
       include: {
         features: {
           include: {
             feature: true,
+            prices: true, // Include plan feature prices
           },
         },
         accounts: {
@@ -84,17 +92,65 @@ export class PlansService {
         },
       },
     });
+
+    if (!plan) {
+      return null;
+    }
+
+    // Add calculated prices
+    return {
+      ...plan,
+      prices: this.calculatePlanPrices(plan),
+    };
+  }
+
+  /**
+   * Calculate total plan price per currency from enabled features
+   */
+  calculatePlanPrices(plan: any): Array<{ currency: string; price: number; isDefault: boolean }> {
+    if (!plan.features || !Array.isArray(plan.features)) {
+      return [];
+    }
+
+    const priceMap: Record<string, { total: number; isDefault: boolean }> = {};
+
+    // Sum prices from all enabled features
+    for (const planFeature of plan.features) {
+      if (!planFeature.isEnabled || !planFeature.prices || !Array.isArray(planFeature.prices)) {
+        continue;
+      }
+
+      for (const featurePrice of planFeature.prices) {
+        const currency = featurePrice.currency;
+        const price = Number(featurePrice.price);
+
+        if (!priceMap[currency]) {
+          priceMap[currency] = { total: 0, isDefault: featurePrice.isDefault };
+        }
+
+        priceMap[currency].total += price;
+        // If any feature price is default, mark currency as default
+        if (featurePrice.isDefault) {
+          priceMap[currency].isDefault = true;
+        }
+      }
+    }
+
+    // Convert to array
+    return Object.entries(priceMap).map(([currency, data]) => ({
+      currency,
+      price: Number(data.total.toFixed(2)),
+      isDefault: data.isDefault,
+    }));
   }
 
   async create(dto: CreatePlanDto, createdBy?: string) {
-    const { featureIds, featurePricing, ...planData } = dto;
+    const { featureIds, features, ...planData } = dto;
 
-    // Create plan
+    // Create plan (no base price - calculated from features)
     const plan = await this.prisma.plan.create({
       data: {
         ...planData,
-        price: new Prisma.Decimal(planData.price),
-        featurePricing: featurePricing as unknown as InputJsonValue,
         meta: planData.meta as unknown as InputJsonValue,
         ...(createdBy !== undefined && { createdBy }),
       } as any,
@@ -108,29 +164,53 @@ export class PlansService {
     });
 
     // Add features if provided
-    if (featureIds && featureIds.length > 0) {
+    if (features && features.length > 0) {
+      // Use detailed feature configuration
+      for (const featureConfig of features) {
+        const planFeature = await (this.prisma.planFeature.create as any)({
+          data: {
+            planId: plan.id,
+            featureId: featureConfig.featureId,
+            isEnabled: featureConfig.isEnabled !== undefined ? featureConfig.isEnabled : true,
+            operationLimit: featureConfig.operationLimit ?? null,
+            resetPeriod: featureConfig.resetPeriod || 'LIFETIME',
+            ...(featureConfig.prices && featureConfig.prices.length > 0 && {
+              prices: {
+                create: featureConfig.prices.map((price: any) => ({
+                  currency: price.currency,
+                  price: new Prisma.Decimal(price.price),
+                  isDefault: price.isDefault || false,
+                })),
+              },
+            }),
+          },
+        });
+      }
+    } else if (featureIds && featureIds.length > 0) {
+      // Fallback to simple featureIds array (backward compatibility)
       await this.prisma.planFeature.createMany({
         data: featureIds.map((featureId: number) => ({
           planId: plan.id,
           featureId,
           isEnabled: true,
+          operationLimit: null, // No limit by default
+          resetPeriod: 'LIFETIME',
         })),
         skipDuplicates: true,
       });
     }
 
-    return this.findById(plan.id);
+    const createdPlan = await this.findById(plan.id);
+    return createdPlan;
   }
 
   async update(id: number, dto: UpdatePlanDto, updatedBy?: string) {
-    const { featureIds, featurePricing, ...planData } = dto;
+    const { featureIds, features, ...planData } = dto;
 
     const updateData: any = {};
     
     if (planData.name !== undefined) updateData.name = planData.name;
     if (planData.description !== undefined) updateData.description = planData.description;
-    if (planData.price !== undefined) updateData.price = new Prisma.Decimal(planData.price);
-    if (planData.currency !== undefined) updateData.currency = planData.currency;
     if (planData.billingPeriod !== undefined) updateData.billingPeriod = planData.billingPeriod;
     if (planData.isActive !== undefined) updateData.isActive = planData.isActive;
     if (planData.isPublic !== undefined) updateData.isPublic = planData.isPublic;
@@ -139,7 +219,6 @@ export class PlansService {
     if (planData.maxClients !== undefined) updateData.maxClients = planData.maxClients;
     if (planData.maxUsers !== undefined) updateData.maxUsers = planData.maxUsers;
     if (planData.maxStorage !== undefined) updateData.maxStorage = planData.maxStorage;
-    if (featurePricing !== undefined) updateData.featurePricing = featurePricing as unknown as InputJsonValue;
     if (planData.meta !== undefined) updateData.meta = planData.meta as unknown as InputJsonValue;
     if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
 
@@ -150,7 +229,37 @@ export class PlansService {
     });
 
     // Update features if provided
-    if (featureIds !== undefined) {
+    if (features !== undefined) {
+      // Remove all existing features (cascade will delete prices)
+      await this.prisma.planFeature.deleteMany({
+        where: { planId: id },
+      });
+
+      // Add new features with detailed configuration
+      if (features.length > 0) {
+        for (const featureConfig of features) {
+          const planFeature = await (this.prisma.planFeature.create as any)({
+            data: {
+              planId: id,
+              featureId: featureConfig.featureId,
+              isEnabled: featureConfig.isEnabled !== undefined ? featureConfig.isEnabled : true,
+              operationLimit: featureConfig.operationLimit ?? null,
+              resetPeriod: featureConfig.resetPeriod || 'LIFETIME',
+              ...(featureConfig.prices && featureConfig.prices.length > 0 && {
+                prices: {
+                  create: featureConfig.prices.map((price: any) => ({
+                    currency: price.currency,
+                    price: new Prisma.Decimal(price.price),
+                    isDefault: price.isDefault || false,
+                  })),
+                },
+              }),
+            },
+          });
+        }
+      }
+    } else if (featureIds !== undefined) {
+      // Fallback to simple featureIds array (backward compatibility)
       // Remove all existing features
       await this.prisma.planFeature.deleteMany({
         where: { planId: id },
@@ -163,6 +272,8 @@ export class PlansService {
             planId: id,
             featureId,
             isEnabled: true,
+            operationLimit: null,
+            resetPeriod: 'LIFETIME',
           })),
           skipDuplicates: true,
         });
