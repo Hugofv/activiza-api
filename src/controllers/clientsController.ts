@@ -39,6 +39,20 @@ export class ClientsController extends BaseController {
 
     this.ok(serializeBigInt(client));
   }
+  
+  async consultDocument(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
+    const { document } = req.params;
+    
+    const client = await this.clientsService.findByDocument(document);
+
+    if (!client) {
+      this.notFound('Client not found');
+      return;
+    }
+
+    this.ok(serializeBigInt(client));
+  }
 
   async create(req: IReq, res: IRes): Promise<void> {
     this.setResponse(res);

@@ -88,6 +88,62 @@ const api = makeInvoker(ClientsController);
  */
 router.get('/', api('index'));
 
+
+
+/**
+ * @swagger
+ * /api/clients/consult/{document}:
+ *   get:
+ *     summary: Consultar cliente por documento
+ *     tags: [Clients]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: document
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Documento do cliente (CPF/CNPJ)
+ *         example: "12345678900"
+ *     responses:
+ *       200:
+ *         description: Cliente encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "1"
+ *                     name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     document:
+ *                       type: string
+ *                       example: "12345678900"
+ *       404:
+ *         description: Cliente não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Não autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ * */
+router.get('/consult/:document', api('consultDocument'));
+
 /**
  * @swagger
  * /api/clients/{id}:

@@ -54,13 +54,15 @@ const wrapHandler = (handler: (req: Request, res: Response) => Promise<void>) =>
  *           schema:
  *             type: object
  *             required:
- *               - email
  *               - password
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *                 example: admin@example.com
+ *               document:
+ *                 type: string
+ *                 example: "12345678900"
  *               password:
  *                 type: string
  *                 format: password

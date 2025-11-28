@@ -77,6 +77,20 @@ export class ClientsService {
     });
   }
 
+  async findByDocument(document: string, includeDeleted = false) {
+    const where: Record<string, unknown> = { document };
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
+    return this.prisma.client.findFirst({
+      where: where as any, // Type assertion until migration is applied
+      include: {
+        account: true,
+        address: true,
+      },
+    });
+  }
+
   async create(dto: CreateClientDto, createdBy?: string) {
     // Check if document already exists
     const existingClient = await this.prisma.client.findFirst({

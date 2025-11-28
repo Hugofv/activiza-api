@@ -41,15 +41,29 @@ export class AuthService {
    * Authenticate user with email and password
    */
   async login(dto: LoginDto): Promise<{ user: unknown; tokens: AuthTokens }> {
-    const user = await this.platformUser.findUnique({
-      where: { email: dto.email },
-      include: {
-        accounts: {
-          take: 1, // Get first account if exists
-          orderBy: { createdAt: 'desc' },
+    let user;
+    
+    if (dto.email) {
+      user = await this.platformUser.findUnique({
+        where: { email: dto.email },
+        include: {
+          accounts: {
+            take: 1, // Get first account if exists
+            orderBy: { createdAt: 'desc' },
+          },
         },
-      },
-    });
+      });
+    } else if (dto.document) {
+      user = await this.platformUser.findUnique({
+        where: { document: dto.document },
+        include: {
+          accounts: {
+            take: 1, // Get first account if exists
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+    }
 
     if (!user) {
       throw new Error('Invalid email or password');

@@ -17,6 +17,7 @@ model PlatformUser {
   name                 String
   email                String    @unique
   phone                String?
+  document             String?   @unique
   meta                 Json?
   passwordHash         String?   @map("password_hash")
   role                 String    @default("agent")
