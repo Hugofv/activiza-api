@@ -34,6 +34,12 @@ model PlatformUser {
   accounts         Account[]      @relation("AccountOwner")
   notificationUser Notification[] @relation("NotificationUser")
 
+  @@index([email], name: "idx_platform_user_email")
+  @@index([role], name: "idx_platform_user_role")
+  @@index([isActive], name: "idx_platform_user_is_active")
+  @@index([deletedAt], name: "idx_platform_user_deleted_at")
+  @@index([role, deletedAt], name: "idx_platform_user_role_deleted")
+  @@index([createdAt], name: "idx_platform_user_created_at")
   @@map("platform_users")
 }
 
@@ -64,6 +70,13 @@ model Account {
   qualifications LeadQualification[]
   featureUsages  FeatureUsage[]
 
+  @@index([email], name: "idx_account_email")
+  @@index([ownerId], name: "idx_account_owner_id")
+  @@index([planId], name: "idx_account_plan_id")
+  @@index([status], name: "idx_account_status")
+  @@index([deletedAt], name: "idx_account_deleted_at")
+  @@index([ownerId, deletedAt], name: "idx_account_owner_deleted")
+  @@index([createdAt], name: "idx_account_created_at")
   @@map("accounts")
 }
 
@@ -94,18 +107,20 @@ model Address {
 }
 
 model Client {
-  id        Int       @id @default(autoincrement())
-  document  String    @unique // CPF or CNPJ - required for onboarding
-  accountId Int?      @map("account_id") // Optional during onboarding
-  name      String? // Optional during onboarding
-  phone     String?
-  email     String?
-  meta      Json?
-  createdBy String?   @map("created_by")
-  updatedBy String?   @map("updated_by")
-  deletedAt DateTime? @map("deleted_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id                  Int       @id @default(autoincrement())
+  document            String? // CPF or CNPJ - optional for onboarding
+  documentType        String?   @map("document_type") // 'cpf', 'cnpj', 'ssn', 'ein', 'ni', 'crn', 'other'
+  documentCountryCode String?   @map("document_country_code") // 'BR', 'US', 'UK', etc.
+  accountId           Int?      @map("account_id") // Optional during onboarding
+  name                String? // Optional during onboarding
+  phone               String?
+  email               String    @unique // Obrigatório, identificador primário durante onboarding
+  meta                Json?
+  createdBy           String?   @map("created_by")
+  updatedBy           String?   @map("updated_by")
+  deletedAt           DateTime? @map("deleted_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   account        Account?            @relation(fields: [accountId], references: [id], onDelete: Cascade)
   address        Address?
@@ -114,6 +129,12 @@ model Client {
   photos         ClientPhoto[]
   qualifications LeadQualification[]
 
+  @@index([email], name: "idx_client_email")
+  @@index([accountId], name: "idx_client_account_id")
+  @@index([deletedAt], name: "idx_client_deleted_at")
+  @@index([accountId, deletedAt], name: "idx_client_account_deleted")
+  @@index([createdAt], name: "idx_client_created_at")
+  @@index([documentCountryCode, document], name: "idx_document_by_country")
   @@map("clients")
 }
 
@@ -130,6 +151,8 @@ model ClientPhoto {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
+  @@index([clientId], name: "idx_client_photo_client_id")
+  @@index([deletedAt], name: "idx_client_photo_deleted_at")
   @@map("client_photos")
 }
 
@@ -169,6 +192,16 @@ model Operation {
   payments         Payment[]
   featureUsages    FeatureUsage[]
 
+  @@index([accountId], name: "idx_operation_account_id")
+  @@index([clientId], name: "idx_operation_client_id")
+  @@index([status], name: "idx_operation_status")
+  @@index([type], name: "idx_operation_type")
+  @@index([deletedAt], name: "idx_operation_deleted_at")
+  @@index([accountId, deletedAt], name: "idx_operation_account_deleted")
+  @@index([clientId, deletedAt], name: "idx_operation_client_deleted")
+  @@index([status, deletedAt], name: "idx_operation_status_deleted")
+  @@index([createdAt], name: "idx_operation_created_at")
+  @@index([dueDate], name: "idx_operation_due_date")
   @@map("operations")
 }
 
@@ -210,6 +243,13 @@ model Installment {
   operation Operation @relation("OperationInstallments", fields: [operationId], references: [id], onDelete: Cascade)
   payments  Payment[]
 
+  @@index([operationId], name: "idx_installment_operation_id")
+  @@index([status], name: "idx_installment_status")
+  @@index([dueDate], name: "idx_installment_due_date")
+  @@index([deletedAt], name: "idx_installment_deleted_at")
+  @@index([operationId, status], name: "idx_installment_operation_status")
+  @@index([operationId, deletedAt], name: "idx_installment_operation_deleted")
+  @@index([status, dueDate], name: "idx_installment_status_due_date")
   @@map("installments")
 }
 
@@ -235,6 +275,12 @@ model Payment {
   installment Installment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
   operation   Operation    @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
+  @@index([clientId], name: "idx_payment_client_id")
+  @@index([operationId], name: "idx_payment_operation_id")
+  @@index([installmentId], name: "idx_payment_installment_id")
+  @@index([deletedAt], name: "idx_payment_deleted_at")
+  @@index([paidAt], name: "idx_payment_paid_at")
+  @@index([operationId, deletedAt], name: "idx_payment_operation_deleted")
   @@map("payments")
 }
 
@@ -257,6 +303,10 @@ model Resource {
   address    Address?    @relation("ResourceAddress", fields: [addressId], references: [id], onDelete: SetNull)
   operations Operation[]
 
+  @@index([accountId], name: "idx_resource_account_id")
+  @@index([type], name: "idx_resource_type")
+  @@index([deletedAt], name: "idx_resource_deleted_at")
+  @@index([accountId, deletedAt], name: "idx_resource_account_deleted")
   @@map("resources")
 }
 
@@ -276,6 +326,12 @@ model Alert {
 
   operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
+  @@index([operationId], name: "idx_alert_operation_id")
+  @@index([type], name: "idx_alert_type")
+  @@index([enabled], name: "idx_alert_enabled")
+  @@index([sendAt], name: "idx_alert_send_at")
+  @@index([deletedAt], name: "idx_alert_deleted_at")
+  @@index([operationId, deletedAt], name: "idx_alert_operation_deleted")
   @@map("alerts")
 }
 
@@ -296,6 +352,12 @@ model Notification {
 
   user PlatformUser @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], name: "idx_notification_user_id")
+  @@index([read], name: "idx_notification_read")
+  @@index([deletedAt], name: "idx_notification_deleted_at")
+  @@index([userId, read], name: "idx_notification_user_read")
+  @@index([userId, deletedAt], name: "idx_notification_user_deleted")
+  @@index([createdAt], name: "idx_notification_created_at")
   @@map("notifications")
 }
 
@@ -360,6 +422,11 @@ model Plan {
   features PlanFeature[]
   accounts Account[]
 
+  @@index([isActive], name: "idx_plan_is_active")
+  @@index([isPublic], name: "idx_plan_is_public")
+  @@index([deletedAt], name: "idx_plan_deleted_at")
+  @@index([isActive, isPublic, deletedAt], name: "idx_plan_active_public_deleted")
+  @@index([sortOrder], name: "idx_plan_sort_order")
   @@map("plans")
 }
 
@@ -479,5 +546,12 @@ model LeadQualification {
   account Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
   client  Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
+  @@index([accountId], name: "idx_lead_qualification_account_id")
+  @@index([clientId], name: "idx_lead_qualification_client_id")
+  @@index([questionKey], name: "idx_lead_qualification_question_key")
+  @@index([deletedAt], name: "idx_lead_qualification_deleted_at")
+  @@index([accountId, questionKey], name: "idx_lead_qualification_account_question")
+  @@index([clientId, questionKey], name: "idx_lead_qualification_client_question")
+  @@index([clientId, deletedAt], name: "idx_lead_qualification_client_deleted")
   @@map("lead_qualifications")
 }

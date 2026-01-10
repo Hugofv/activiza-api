@@ -114,7 +114,7 @@ export class AuthService {
   /**
    * Generate JWT tokens
    */
-  private generateTokens(payload: TokenPayload): AuthTokens {
+  generateTokens(payload: TokenPayload): AuthTokens {
     const accessToken = jwt.sign(payload, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
     } as jwt.SignOptions);

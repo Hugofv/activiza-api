@@ -44,7 +44,7 @@ export class ClientsController extends BaseController {
     this.setResponse(res);
     const { document } = req.params;
     
-    const client = await this.clientsService.findByDocument(document);
+    const client = await this.clientsService.findByDocument(document as string);
 
     if (!client) {
       this.notFound('Client not found');

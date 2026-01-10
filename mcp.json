@@ -1,0 +1,32 @@
+{
+  "servers": {
+    "filesystem-app": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Volumes/Dev/ativiza/app"
+      ]
+    },
+    "filesystem-api": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Volumes/Dev/ativiza/api"
+      ]
+    },
+    "git": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "--repository",
+        "/Volumes/Dev/ativiza"
+      ]
+    }
+  }
+}
