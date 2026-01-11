@@ -112,6 +112,237 @@ export class AuthService {
   }
 
   /**
+   * Check email status - verify if email is registered and return status
+   */
+  async checkEmail(email: string): Promise<{
+    email: string;
+    registered: boolean;
+    existsAs: 'client' | 'platformUser' | 'both' | 'none';
+    clientStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+    onboardingStep?: string;
+    accountId?: number;
+    userId?: number;
+    message: string;
+  }> {
+    // Check if email exists as Client
+    const client = await (this.prisma as any).client.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+      },
+      include: {
+        account: true,
+        address: true,
+      },
+    });
+    
+    // Check if email exists as PlatformUser
+    const platformUser = await this.platformUser.findUnique({
+      where: { email },
+      include: {
+        accounts: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    let existsAs: 'client' | 'platformUser' | 'both' | 'none' = 'none';
+    if (client && platformUser) {
+      existsAs = 'both';
+    } else if (client) {
+      existsAs = 'client';
+    } else if (platformUser) {
+      existsAs = 'platformUser';
+    }
+
+    // If email is not registered, return early
+    if (!client && !platformUser) {
+      return {
+        email,
+        registered: false,
+        existsAs: 'none',
+        message: 'Email não está registrado. Você pode iniciar o onboarding.',
+      };
+    }
+
+    // Priority: Check Client status first (onboarding flow)
+    if (client) {
+      // Client with accountId means onboarding is COMPLETED (via submitOnboarding)
+      if (client.accountId) {
+        // Client has account, onboarding is complete
+        return {
+          email,
+          registered: true,
+          existsAs: platformUser ? 'both' : 'client',
+          clientStatus: 'COMPLETED',
+          onboardingStep: 'completed',
+          accountId: client.accountId,
+          userId: platformUser?.id,
+          message: 'Email está registrado e onboarding completo. Você pode fazer login.',
+        };
+      }
+
+      // Client without accountId means onboarding is IN_PROGRESS
+      // Determine current step based on client data
+      let step = 'email';
+      let status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' = 'IN_PROGRESS';
+
+      // Simple step detection based on available data
+      if (client.address) {
+        step = 'address';
+      } else if (client.phone) {
+        step = 'phone';
+      } else if (client.name) {
+        step = 'name';
+      } else {
+        status = 'NOT_STARTED';
+        step = 'email';
+      }
+
+      return {
+        email,
+        registered: true,
+        existsAs: 'client',
+        clientStatus: status,
+        onboardingStep: step,
+        message: status === 'IN_PROGRESS'
+          ? `Email está registrado. Onboarding em progresso (etapa: ${step}).`
+          : 'Email está registrado, mas onboarding não iniciado.',
+      };
+    }
+
+    // If only PlatformUser exists (no Client), user was created via register (can login)
+    if (platformUser) {
+      const accountId = platformUser.accounts.length > 0 ? platformUser.accounts[0].id : undefined;
+      return {
+        email,
+        registered: true,
+        existsAs: 'platformUser',
+        clientStatus: 'COMPLETED', // PlatformUser means user can login
+        onboardingStep: 'completed',
+        accountId,
+        userId: platformUser.id,
+        message: 'Email já está registrado como usuário. Você pode fazer login.',
+      };
+    }
+
+    // Should not reach here, but just in case
+    return {
+      email,
+      registered: false,
+      existsAs: 'none',
+      message: 'Email não está registrado.',
+    };
+  }
+
+  /**
+   * Register new user with email and password
+   */
+  async register(email: string, password: string, name?: string): Promise<{ user: unknown; tokens: AuthTokens }> {
+    // Check if user already exists
+    const existingUser = await this.platformUser.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new Error('Email already registered');
+    }
+
+    // Check if email exists as Client (but not as PlatformUser)
+    const client = await (this.prisma as any).client.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+      },
+    });
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create PlatformUser
+    const platformUserData: any = {
+      email,
+      passwordHash,
+      name: name || email.split('@')[0], // Use email prefix if name not provided
+      role: UserRole.OWNER,
+      isActive: true,
+      emailVerifiedAt: client ? new Date() : null, // If exists as Client, consider email verified
+    };
+
+    const user = await this.platformUser.create({
+      data: platformUserData,
+      include: {
+        accounts: true,
+      },
+    });
+
+    // If client exists, link it to the PlatformUser by creating or using existing Account
+    let accountId: number | null = null;
+    if (client) {
+      if (client.accountId) {
+        // Client already has an account, use it and update owner
+        accountId = client.accountId;
+        await (this.prisma as any).account.update({
+          where: { id: accountId },
+          data: { ownerId: user.id },
+        });
+      } else {
+        // Create Account for the client
+        const account = await (this.prisma as any).account.create({
+          data: {
+            name: name || user.name || 'My Account',
+            email: user.email,
+            phone: client.phone,
+            document: (client as any).document,
+            ownerId: user.id,
+            status: 'ACTIVE',
+          },
+        });
+
+        accountId = account.id;
+
+        // Link client to account
+        await (this.prisma as any).client.update({
+          where: { id: client.id },
+          data: { accountId: account.id },
+        });
+
+        // Update qualifications to link to account
+        await (this.prisma as any).leadQualification.updateMany({
+          where: {
+            clientId: client.id,
+            accountId: null,
+            deletedAt: null,
+          },
+          data: {
+            accountId: account.id,
+          },
+        });
+      }
+    } else {
+      // No client exists, check if user already has an account
+      accountId = user.accounts.length > 0 ? user.accounts[0].id : null;
+    }
+
+    // Generate tokens
+    const tokens = this.generateTokens({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      accountId: accountId,
+    });
+
+    // Remove sensitive data
+    const { passwordHash: _, passwordResetToken, passwordResetExpires, ...userWithoutSensitive } = user;
+
+    return {
+      user: userWithoutSensitive,
+      tokens,
+    };
+  }
+
+  /**
    * Generate JWT tokens
    */
   generateTokens(payload: TokenPayload): AuthTokens {

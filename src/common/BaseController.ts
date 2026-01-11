@@ -8,7 +8,7 @@ import HttpStatusCodes from './HttpStatusCodes';
 
 interface SuccessResponse<T = unknown> {
   success: true;
-  data: T;
+  [key: string]: any;
 }
 
 interface ErrorResponse {
@@ -36,7 +36,7 @@ export abstract class BaseController {
   protected ok<T>(data: T): Response {
     return this.res.status(HttpStatusCodes.OK).json({
       success: true,
-      data,
+      ...data,
     } as SuccessResponse<T>);
   }
 
@@ -46,7 +46,7 @@ export abstract class BaseController {
   protected created<T>(data: T): Response {
     return this.res.status(HttpStatusCodes.CREATED).json({
       success: true,
-      data,
+      ...data,
     } as SuccessResponse<T>);
   }
 

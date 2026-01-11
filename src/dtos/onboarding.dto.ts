@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { OnboardingStatus } from '../constants/enums';
 
 // Phone schema
 const phoneSchema = z.object({
@@ -76,6 +77,10 @@ export const onboardingSaveSchema = z.object({
   accountName: z.string().optional(),
   accountEmail: z.string().email().optional(),
   planId: z.number().int().positive().optional(), // Selected plan
+  
+  // Onboarding status and step (controlled by frontend)
+  clientStatus: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  onboardingStep: z.string().optional(),
 });
 
 export type OnboardingSaveDto = z.infer<typeof onboardingSaveSchema>;
@@ -120,6 +125,10 @@ export const onboardingSubmitSchema = z.object({
   accountName: z.string().optional(),
   accountEmail: z.string().email().optional(),
   planId: z.number().int().positive().optional(),
+  
+  // Onboarding status and step (controlled by frontend)
+  clientStatus: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  onboardingStep: z.string().optional(),
 }).refine(
   (data) => {
     // If document is provided, documentType and documentCountryCode must also be provided

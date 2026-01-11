@@ -8,11 +8,13 @@ import { makeInvoker } from 'awilix-express';
 import { OnboardingController } from '../controllers/onboardingController';
 import { validate, validateQuery } from '../middlewares/validation.middleware';
 import { onboardingSaveSchema, onboardingSubmitSchema, onboardingPlansQuerySchema } from '../dtos/onboarding.dto';
+import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 const api = makeInvoker(OnboardingController);
 
-// Onboarding routes are public (no auth required)
+// All onboarding routes now require authentication (token required)
+
 
 /**
  * @swagger
@@ -20,7 +22,9 @@ const api = makeInvoker(OnboardingController);
  *   post:
  *     summary: Save onboarding data (progressive submission)
  *     tags: [Onboarding]
- *     description: Handles step-by-step data submission during onboarding. Creates/updates client and account as user progresses.
+ *     security:
+ *       - bearerAuth: []
+ *     description: Handles step-by-step data submission during onboarding. Creates/updates client and account as user progresses. Requires authentication token.
  *     requestBody:
  *       required: true
  *       content:
@@ -185,7 +189,7 @@ const api = makeInvoker(OnboardingController);
  *                   type: number
  *                   example: 409
  */
-router.post('/save', validate(onboardingSaveSchema), api('save'));
+router.post('/save', authMiddleware, validate(onboardingSaveSchema), api('save'));
 
 /**
  * @swagger
@@ -193,7 +197,9 @@ router.post('/save', validate(onboardingSaveSchema), api('save'));
  *   post:
  *     summary: Submit onboarding - finalize registration (99% - Options screen)
  *     tags: [Onboarding]
- *     description: Finalizes onboarding process. Creates user account and returns JWT tokens for automatic login. Called when user selects business options (99% complete).
+ *     security:
+ *       - bearerAuth: []
+ *     description: Finalizes onboarding process. Creates user account and returns JWT tokens for automatic login. Called when user selects business options (99% complete). Requires authentication token.
  *     requestBody:
  *       required: true
  *       content:
@@ -309,6 +315,24 @@ router.post('/save', validate(onboardingSaveSchema), api('save'));
  *               planId:
  *                 type: number
  *                 description: Selected plan ID (optional)
+ *               clientStatus:
+ *                 type: string
+ *                 enum: [NOT_STARTED, IN_PROGRESS, COMPLETED]
+ *                 description: Onboarding status (optional, controlled by frontend - saved to PlatformUser meta)
+ *                 example: "COMPLETED"
+ *               onboardingStep:
+ *                 type: string
+ *                 description: Current onboarding step (optional, controlled by frontend - saved to PlatformUser meta)
+ *                 example: "completed"
+ *               clientStatus:
+ *                 type: string
+ *                 enum: [NOT_STARTED, IN_PROGRESS, COMPLETED]
+ *                 description: Onboarding status (optional, controlled by frontend)
+ *                 example: "IN_PROGRESS"
+ *               onboardingStep:
+ *                 type: string
+ *                 description: Current onboarding step (optional, controlled by frontend)
+ *                 example: "email_verification"
  *     responses:
  *       200:
  *         description: Registration completed successfully
@@ -393,7 +417,7 @@ router.post('/save', validate(onboardingSaveSchema), api('save'));
  *                   type: object
  *                   description: Additional error details (only for DOCUMENT_ALREADY_EXISTS)
  */
-router.post('/submit', validate(onboardingSubmitSchema), api('submit'));
+router.post('/submit', authMiddleware, validate(onboardingSubmitSchema), api('submit'));
 
 /**
  * @swagger
@@ -401,7 +425,9 @@ router.post('/submit', validate(onboardingSubmitSchema), api('submit'));
  *   get:
  *     summary: Get onboarding progress
  *     tags: [Onboarding]
- *     description: Retrieve current onboarding progress by email or document. Email takes priority if both are provided.
+ *     security:
+ *       - bearerAuth: []
+ *     description: Retrieve current onboarding progress by email or document. Email takes priority if both are provided. Requires authentication token.
  *     parameters:
  *       - in: query
  *         name: email
@@ -479,7 +505,7 @@ router.post('/submit', validate(onboardingSubmitSchema), api('submit'));
  *       400:
  *         description: Email or document is required
  */
-router.get('/progress', api('getProgress'));
+router.get('/progress', authMiddleware, api('getProgress'));
 
 /**
  * @swagger
@@ -487,7 +513,9 @@ router.get('/progress', api('getProgress'));
  *   get:
  *     summary: Get recommended plans based on business metrics
  *     tags: [Onboarding]
- *     description: Returns recommended plans based on business metrics (activeCustomers, financialOperations, workingCapital, businessDuration)
+ *     security:
+ *       - bearerAuth: []
+ *     description: Returns recommended plans based on business metrics (activeCustomers, financialOperations, workingCapital, businessDuration). Requires authentication token.
  *     parameters:
  *       - in: query
  *         name: activeCustomers
@@ -570,7 +598,7 @@ router.get('/progress', api('getProgress'));
  *                             description: Score from 0-100 indicating how well the plan matches
  *                             example: 85
  */
-router.get('/plans', validateQuery(onboardingPlansQuerySchema), api('getPlans'));
+router.get('/plans', authMiddleware, validateQuery(onboardingPlansQuerySchema), api('getPlans'));
 
 export default router;
 

@@ -17,13 +17,13 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 const routes = Router();
 
 // Public routes (no authentication required)
-routes.use('/onboarding', onboardingRouter);
 routes.use('/plans', plansRouter);
 
 // All other /api/* routes require authentication
 routes.use(authMiddleware);
 
 // Protected routes (require authentication)
+routes.use('/onboarding', onboardingRouter); // Now protected - requires token
 routes.use('/accounts', accountsRouter);
 routes.use('/clients', clientsRouter);
 routes.use('/operations', operationsRouter);

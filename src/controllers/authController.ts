@@ -86,5 +86,50 @@ export class AuthController extends BaseController {
     // Optionally, you could implement a token blacklist here
     this.ok({ message: 'Logged out successfully' });
   }
+
+  async register(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
+    try {
+      const { email, password, name } = req.body as { email: string; password: string; name?: string };
+      const result = await this.authService.register(email, password, name);
+      this.ok({
+        user: serializeBigInt(result.user),
+        ...result.tokens,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already registered')) {
+        res.status(409).json({
+          success: false,
+          error: { message: error.message, code: 'EMAIL_ALREADY_EXISTS' },
+        });
+        return;
+      }
+      this.badRequest(error instanceof Error ? error.message : 'Registration failed');
+    }
+  }
+
+  async checkEmail(req: IReq, res: IRes): Promise<void> {
+    this.setResponse(res);
+    try {
+      const email = req.query.email as string;
+      
+      if (!email) {
+        this.badRequest('Email is required');
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        this.badRequest('Invalid email format');
+        return;
+      }
+
+      const result = await this.authService.checkEmail(email);
+      this.ok(result);
+    } catch (error) {
+      this.badRequest(error instanceof Error ? error.message : 'Failed to check email');
+    }
+  }
 }
 

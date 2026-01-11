@@ -274,34 +274,58 @@ export class OnboardingService {
     // Note: Account creation is now handled in submitOnboarding method
     // This save method only saves partial data during onboarding
 
-    // Determine current step based on saved data
-    let step = 'email';
-    if (client.accountId) {
-      step = 'completed';
-    } else if (dto.address) {
-      step = 'address';
-    } else if (dto.businessOptions !== undefined && dto.businessOptions.length > 0) {
-      step = 'business_options';
-    } else if (dto.businessDuration !== undefined) {
-      step = 'business_duration';
-    } else if (dto.workingCapital !== undefined) {
-      step = 'capital';
-    } else if (dto.financialOperations !== undefined) {
-      step = 'financial_operations';
-    } else if (dto.activeCustomers !== undefined) {
-      step = 'active_customers';
-    } else if (dto.password) {
-      step = 'password';
-    } else if (dto.emailCode) {
-      step = 'email_verification';
-    } else if (dto.code) {
-      step = 'phone_verification';
-    } else if (dto.phone) {
-      step = 'phone';
-    } else if (dto.name) {
-      step = 'name';
-    } else if (dto.document) {
-      step = 'document';
+    // Use onboardingStep from DTO if provided (frontend controls), otherwise determine based on data
+    let step = dto.onboardingStep || 'email';
+    if (!dto.onboardingStep) {
+      if (client.accountId) {
+        step = 'completed';
+      } else if (dto.address) {
+        step = 'address';
+      } else if (dto.businessOptions !== undefined && dto.businessOptions.length > 0) {
+        step = 'business_options';
+      } else if (dto.businessDuration !== undefined) {
+        step = 'business_duration';
+      } else if (dto.workingCapital !== undefined) {
+        step = 'capital';
+      } else if (dto.financialOperations !== undefined) {
+        step = 'financial_operations';
+      } else if (dto.activeCustomers !== undefined) {
+        step = 'active_customers';
+      } else if (dto.password) {
+        step = 'password';
+      } else if (dto.emailCode) {
+        step = 'email_verification';
+      } else if (dto.code) {
+        step = 'phone_verification';
+      } else if (dto.phone) {
+        step = 'phone';
+      } else if (dto.name) {
+        step = 'name';
+      } else if (dto.document) {
+        step = 'document';
+      }
+    }
+
+    // Update PlatformUser meta if it exists (e.g., created via register)
+    if (dto.clientStatus || dto.onboardingStep) {
+      const existingPlatformUser = await this.prisma.platformUser.findUnique({
+        where: { email: dto.email },
+      });
+
+      if (existingPlatformUser) {
+        const existingMeta = (existingPlatformUser.meta as Record<string, unknown>) || {};
+        const onboardingMeta = (existingMeta.onboarding as Record<string, unknown>) || {};
+        
+        if (dto.clientStatus) onboardingMeta.clientStatus = dto.clientStatus;
+        if (dto.onboardingStep) onboardingMeta.onboardingStep = dto.onboardingStep;
+        
+        existingMeta.onboarding = onboardingMeta;
+
+        await this.prisma.platformUser.update({
+          where: { id: existingPlatformUser.id },
+          data: { meta: existingMeta as any },
+        });
+      }
     }
 
     return {
@@ -427,6 +451,16 @@ export class OnboardingService {
     // Add document if provided
     if (dto.document) {
       platformUserData.document = normalizeDocument(dto.document);
+    }
+
+    // Add onboarding status and step to meta (controlled by frontend)
+    if (dto.clientStatus || dto.onboardingStep) {
+      platformUserData.meta = {
+        onboarding: {
+          clientStatus: dto.clientStatus || OnboardingStatus.COMPLETED,
+          onboardingStep: dto.onboardingStep || 'completed',
+        },
+      };
     }
 
     const platformUser = await this.prisma.platformUser.create({
@@ -612,6 +646,94 @@ export class OnboardingService {
 
     return {
       plans: formattedPlans,
+    };
+  }
+
+  /**
+   * Check email status - verify if email is registered and return status
+   */
+  async checkEmail(email: string): Promise<{
+    email: string;
+    registered: boolean;
+    existsAs: 'client' | 'platformUser' | 'both' | 'none';
+    clientStatus?: OnboardingStatus;
+    onboardingStep?: string;
+    accountId?: number;
+    userId?: number;
+    message: string;
+  }> {
+    // Check if email exists as Client
+    const client = await this.clientsService.findByEmail(email);
+    
+    // Check if email exists as PlatformUser
+    const platformUser = await this.prisma.platformUser.findUnique({
+      where: { email },
+      include: {
+        accounts: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    let existsAs: 'client' | 'platformUser' | 'both' | 'none' = 'none';
+    if (client && platformUser) {
+      existsAs = 'both';
+    } else if (client) {
+      existsAs = 'client';
+    } else if (platformUser) {
+      existsAs = 'platformUser';
+    }
+
+    // If email is not registered, return early
+    if (!client && !platformUser) {
+      return {
+        email,
+        registered: false,
+        existsAs: 'none',
+        message: 'Email não está registrado. Você pode iniciar o onboarding.',
+      };
+    }
+
+    // If exists as PlatformUser, onboarding is completed
+    if (platformUser) {
+      const accountId = platformUser.accounts.length > 0 ? platformUser.accounts[0].id : undefined;
+      return {
+        email,
+        registered: true,
+        existsAs: client ? 'both' : 'platformUser',
+        clientStatus: OnboardingStatus.COMPLETED,
+        onboardingStep: 'completed',
+        accountId,
+        userId: platformUser.id,
+        message: 'Email já está registrado como usuário. Você pode fazer login.',
+      };
+    }
+
+    // If exists only as Client, get onboarding progress
+    if (client) {
+      const progress = await this.getOnboardingProgress(email);
+      return {
+        email,
+        registered: true,
+        existsAs: 'client',
+        clientStatus: progress.status,
+        onboardingStep: progress.step,
+        accountId: progress.accountId,
+        message: progress.status === OnboardingStatus.COMPLETED
+          ? 'Email está registrado e onboarding completo.'
+          : progress.status === OnboardingStatus.IN_PROGRESS
+          ? `Email está registrado. Onboarding em progresso (etapa: ${progress.step}).`
+          : 'Email está registrado, mas onboarding não iniciado.',
+      };
+    }
+
+    // Should not reach here, but just in case
+    return {
+      email,
+      registered: false,
+      existsAs: 'none',
+      message: 'Email não está registrado.',
     };
   }
 
